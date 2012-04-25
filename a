@@ -1,0 +1,130 @@
+commit 53bd4d68a7163efdb252478024c1f195f5ec049f
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Wed Apr 11 16:50:06 2012 +0200
+
+    marco: further improvements to cal.h/.c and checksum functions in commands.c
+
+commit 32ca1f465724a4ac1b7c482afa70f98eb134c050
+Merge: 0b20468 5484e4b
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Wed Apr 11 14:14:32 2012 +0200
+
+    marco: implementation updates on cal.h/.c
+
+commit 0b204680acf3e815bb1edb1af8440b73d4b88b08
+Merge: a3d9272 00e722b
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Wed Apr 11 12:36:16 2012 +0200
+
+    merge
+
+commit 5484e4bae2399e98f205d471ac6ab2c52587b269
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Wed Apr 11 12:31:27 2012 +0200
+
+    fixed
+
+commit 00e722b7426a7c3ba042a635bfdd3c3e5e24c7aa
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Wed Apr 11 12:12:04 2012 +0200
+
+    containing a lot of pesudo codes
+
+commit a3d927210ab5a906ee64e9f71671c04b8422e7f9
+Merge: 66465e0 4523988
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Wed Apr 11 12:06:31 2012 +0200
+
+    merge
+
+commit 66465e065eb55780ca2af5aac54908ab19ab4d22
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Wed Apr 11 11:50:30 2012 +0200
+
+    merge commit
+
+commit 45239889d151c3845106cbde2d47b3b6a712f4ae
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Tue Apr 10 13:45:50 2012 +0200
+
+    checkchecksum implemented
+
+commit f93d2cfb25ca71a4ac95f1b645699ced42031ab6
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Tue Apr 10 12:53:26 2012 +0200
+
+    2012.4.10 AM 12:53
+
+commit 486cc7aaa0f88de9e0a8fa0b81b47bc3cfbf2733
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Tue Apr 10 11:34:28 2012 +0200
+
+    until read memory
+
+commit 15c46ffcb373ab17311d004949c579785c569de4
+Merge: 4090077 b7cc8e6
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Sat Apr 7 16:23:45 2012 +0200
+
+    Merge branch 'master' of github.com:CBBL/CBBL_usart
+    
+    Conflicts:
+    	firmware.elf
+    	src/app.a
+    	src/cal.h
+    	src/commands.o
+
+commit 4090077bfd9f5666d30e8daf1a5ecd4959603616
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Sat Apr 7 16:22:13 2012 +0200
+
+    after compilation
+
+commit b7cc8e658beb15742589a0e858e142324804d2e0
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Sat Apr 7 16:19:17 2012 +0200
+
+    get cmd done
+
+commit 8eb066cb7938cdced39255249d204f3c20128edb
+Merge: 09b6541 66f7b1d
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Sat Apr 7 15:42:59 2012 +0200
+
+    Merge branch 'master' of github.com:CBBL/CBBL_usart
+
+commit 09b6541f805ac1976751e9220a8200a65fb8e894
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Sat Apr 7 15:42:49 2012 +0200
+
+    very slight changes
+
+commit 66f7b1dada77f5d00ef9cd9e4e044455657865b2
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Sat Apr 7 15:40:47 2012 +0200
+
+    slight change,ready for implementing
+
+commit 3b77be52b7e247cddce1c19860ffe54d2cfec1c2
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Sat Apr 7 14:23:34 2012 +0200
+
+    slight changes
+
+commit 8a011d9878646176d59b580295808b2f4a1a12b8
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Tue Apr 3 15:04:16 2012 +0200
+
+    compilaton passed
+
+commit 85feb48c338c720919c308c4ef249b6c1e518389
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Tue Apr 3 14:46:01 2012 +0200
+
+    April03 first architecture update
+
+commit 277c5e3ed7168b1aba9d4a1527771486b0423c39
+Author: stm32 <stm32@stm32-dev.(none)>
+Date:   Tue Apr 3 13:29:33 2012 +0200
+
+    first commit
