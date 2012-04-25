@@ -138,11 +138,11 @@ int32_t command_receiveinit() {
  * @param  32-bit word to compute bytewise checksum for
  * @retval 8-bit checksum
  */
-uint8_t calculatechecksum(uint8_t *data,uint32_t length) {
+uint8_t calculatechecksum(uint8_t *data, uint8_t length) {
 	uint8_t i, checksum = 0;
 	for( i = 0; i < length; i ++ ) {
 	    checksum ^= *data;
-		data = data + i;
+		data = data + 1;
 	}
 	return checksum;
 }
@@ -156,13 +156,25 @@ uint8_t calculatechecksum(uint8_t *data,uint32_t length) {
  * First computes the checksum of "length" bytes by XOR and then checks it against
  * the provided chacksum byte
  */
-int32_t checkchecksum(uint8_t data,uint32_t length,uint8_t checksum) {
-	if(calculatechecksum(&data,length)==checksum) {
+int32_t checkchecksumword(uint32_t data, uint8_t length, uint8_t checksum) {
+	uint8_t bytes[4];
+	bytes[0]=(data & 0xFF);
+	bytes[1]=(data & 0xFF00)>>8;
+	bytes[2]=(data & 0xFF0000)>>16;
+	bytes[3]=(data & 0xFF000000)>>24;
+	if(calculatechecksum(bytes,length)==checksum) {
 		return 0;
 	}
 	else return -1;
 }
 
+
+int32_t checkchecksumbytes(uint8_t *data, uint8_t length, uint8_t checksum) {
+	if(calculatechecksum(data,length)==checksum) {
+			return 0;
+		}
+		else return -1;
+}
 
 /*
  * @brief  Helper function to jump to the application. Uses function pointer mechanism.
@@ -272,13 +284,13 @@ int32_t command_read_memory() {
 	if(cal_receiveword((uint32_t *)&addr, TIMEOUT_NACK) == -1) return -1;  //data,address
 	if(cal_receivebyte((uint8_t *)&checksum, TIMEOUT_NACK) == -1) return -1;  //checksum
 	if(!hil_validateaddr(addr) == 1) {cal_sendbyte(STM32_COMM_NACK); return -1;}
-	if(checkchecksum(addr,4,checksum) == -1) {cal_sendbyte(STM32_COMM_NACK); return -1;}
+	if(checkchecksumword(addr,4,checksum) == -1) {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	cal_SENDACK();
 
 	/* Receive number of bytes to read. */
 	if(cal_receivebyte((uint8_t *)&number, TIMEOUT_NACK) == -1) return -1;
 	if(cal_receivebyte((uint8_t *)&checksum, TIMEOUT_NACK) == -1) return -1;
-	if(checkchecksum(number,1,checksum) == -1) {cal_sendbyte(STM32_COMM_NACK); return -1;}
+	if(checkchecksumbytes(&number,1,checksum) == -1) {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	cal_SENDACK();
 
     /* Send Data. */
@@ -306,7 +318,7 @@ int32_t command_go() {
 	if(cal_receivebyte((uint8_t *)&checksum, TIMEOUT_NACK) == -1) return -1;  //checksum
 	if(cal_sendbyte(STM32_COMM_ACK)==-1) return -1;
 	if(!hil_validateaddr(addr) == 1) {cal_sendbyte(STM32_COMM_NACK); return -1;}
-	if(checkchecksum(addr,4,checksum) == -1) {cal_sendbyte(STM32_COMM_NACK); return -1;}
+	if(checkchecksumword(addr,4,checksum) == -1) {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	cal_SENDACK();
 	jumptoapp(addr);
 	return 0;
@@ -323,22 +335,30 @@ int32_t command_write_memory() {
 	cal_SENDACK();
 	cal_READWORD(addr,TIMEOUT_NACK); //data,address
 	cal_READBYTE(checksum,TIMEOUT_NACK); //checksum
-	if(checkchecksum(addr,4,checksum) == -1) {cal_SENDNACK();}
+	if(checkchecksumword(addr,4,checksum) == -1) {cal_SENDNACK();}
 	cal_SENDACK();
 	cal_READBYTE(number, TIMEOUT_NACK); //number of bytes to be written
+	//!!must be 2!!!
+	//it is actually number + 1 to be received according to the docs
+	//append number at the end of the buffer
+	//uint8_t *databuffer=(uint8_t*)malloc((number+2)*sizeof(uint8_t));
+	//if (databuffer == NULL) return -2;
+	//for the moment use N=2; need to find a way to dynamically allocate it
 	uint8_t databuffer[number+2];
 	for(i=0;i<number+1;i++) {
 		if(cal_receivebyte(databuffer+i, TIMEOUT_NACK)) return -1;
 	}
 	databuffer[number+1]=number;
 	cal_READBYTE(checksum,TIMEOUT_NACK);
-	if(checkchecksum(*databuffer,number+2,checksum)==-1) {cal_SENDNACK();};
+	if(checkchecksumbytes(databuffer,number+2,checksum)==-1) {cal_SENDNACK();};
 	switch (hil_validateaddr(addr)) {
 	case 1:
 		for (j=0;j<(number+1);j=j+4) {
-		for (i=0; i<4; i++) {
-		bytes[i]=databuffer[j+i];
-		}
+			for (i=0; i<4; i++) {
+			//WE ARE PRINTING THE NUMBER OF BYTES, TWO IN THIS SENSE!!!!!!!
+				if((j+i)<=number) bytes[i]=databuffer[j+i];
+				else bytes[i]=0;
+			}
 		FLASH_ProgramWord(addr+j,*(uint32_t*)bytes);
 		}
 		break;
@@ -384,7 +404,7 @@ int32_t command_erase_memory() {
 		}
 		databuffer[number+1]=number;
 		cal_READBYTE(checksum, TIMEOUT_NACK);
-		if(checkchecksum(*databuffer,number+2,checksum)==-1) cal_SENDNACK();
+		if(checkchecksumbytes(databuffer,number+2,checksum)==-1) cal_SENDNACK();
 		cal_SENDLOG("-> cmd: checksum correct, starting pagewise erase \r\n");
 		for (i=0;i<number+1;i++) {
 	       pageaddr = (databuffer[i]-1)*FLASHPAGESIZE+FLASHbase;
@@ -458,7 +478,7 @@ int32_t command_write_protect() {
 	}
 	databuffer[number+1]=number;
 	if(cal_receivebyte((uint8_t *)&checksum, TIMEOUT_NACK) == -1) return -1;
-	if(checkchecksum(*databuffer,number+2,checksum)==-1) {cal_sendbyte(STM32_COMM_NACK); return -1;};
+	if(checkchecksumbytes(databuffer,number+2,checksum)==-1) {cal_sendbyte(STM32_COMM_NACK); return -1;};
 	for (i=0;i<number+1;i++) {
     sector = (databuffer[i]-1)*SECTORSIZE+FLASHbase;   //what is sector codes received. this calculation might be wrong
     hil_enablewriteprotectionflashmen(sector);
