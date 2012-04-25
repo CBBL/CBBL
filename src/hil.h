@@ -12,7 +12,7 @@
 #define STM32F10X_MD
 
 #define PIDBYTE2		(0x10)
-#define FLASHbase		(0x08000400) //Page 0 for Main flash memory
+#define FLASHbase		(0x08005000) //Page 0 for Main flash memory
 #define FLASHtop		(0x0801FFFF)
 #define FLASHPAGESIZE   (0x400)
 #define SECTORSIZE      (0x1000)

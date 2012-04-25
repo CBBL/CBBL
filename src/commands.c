@@ -140,9 +140,10 @@ int32_t command_receiveinit() {
  */
 uint8_t calculatechecksum(uint8_t *data,uint32_t length) {
 	uint8_t i, checksum = 0;
-	for( i = 0; i < length; i ++ )
+	for( i = 0; i < length; i ++ ) {
 	    checksum ^= *data;
 		data = data + i;
+	}
 	return checksum;
 }
 
@@ -318,20 +319,20 @@ int32_t command_write_memory() {
 	uint8_t i ;
 	uint8_t j;
 	uint8_t bytes[4];
-	if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
-	if(cal_sendbyte(STM32_COMM_ACK)==-1) return -1;
-	if(cal_receiveword((uint32_t *)&addr, TIMEOUT_NACK) == -1) return -1;  //data,address
-	if(cal_receivebyte((uint8_t *)&checksum, TIMEOUT_NACK) == -1) return -1;  //checksum
-	if(checkchecksum(addr,4,checksum) == -1) {cal_sendbyte(STM32_COMM_NACK); return -1;}
-	if(cal_sendbyte(STM32_COMM_ACK)==-1) return -1;
-	if(cal_receivebyte((uint8_t *)&number, TIMEOUT_NACK) == -1) return -1; //number of bytes to be written
+	//if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
+	cal_SENDACK();
+	cal_READWORD(addr,TIMEOUT_NACK); //data,address
+	cal_READBYTE(checksum,TIMEOUT_NACK); //checksum
+	if(checkchecksum(addr,4,checksum) == -1) {cal_SENDNACK();}
+	cal_SENDACK();
+	cal_READBYTE(number, TIMEOUT_NACK); //number of bytes to be written
 	uint8_t databuffer[number+2];
 	for(i=0;i<number+1;i++) {
 		if(cal_receivebyte(databuffer+i, TIMEOUT_NACK)) return -1;
 	}
 	databuffer[number+1]=number;
-	if(cal_receivebyte((uint8_t *)&checksum, TIMEOUT_NACK) == -1) return -1;
-	if(checkchecksum(*databuffer,number+2,checksum)==-1) {cal_sendbyte(STM32_COMM_NACK); return -1;};
+	cal_READBYTE(checksum,TIMEOUT_NACK);
+	if(checkchecksum(*databuffer,number+2,checksum)==-1) {cal_SENDNACK();};
 	switch (hil_validateaddr(addr)) {
 	case 1:
 		for (j=0;j<(number+1);j=j+4) {

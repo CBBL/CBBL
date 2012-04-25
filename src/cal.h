@@ -50,7 +50,7 @@ void CANinit(void);
     return -1
 
 #define cal_READWORD(x, timeout)\
-  if(cal_receivebyte((uint32_t *)&x, timeout) == -1 )\
+  if(cal_receiveword((uint32_t *)&x, timeout) == -1 )\
     return -1
 
 #define cal_SENDBYTE(x)\

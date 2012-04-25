@@ -54,11 +54,28 @@ int32_t cal_receivebyte(uint8_t *c, uint32_t timeout) {
  * @param  Pointer to received word container
  * @retval 0 if successful, -1 if not successful/timeout expired
  */
+/*
 int32_t cal_receiveword(uint32_t *c, uint32_t timeout) {
 	uint8_t bytes[4], i;
 	for (i=0; i<4; i++) if (cal_receivebyte(bytes+i, timeout)==-1) return -1;
 	c = (uint32_t*)bytes;
 	return 0;
+}
+*/
+
+int32_t cal_receiveword(uint32_t *c, uint32_t timeout) {
+	uint32_t bytes = 0;
+    uint8_t a1,a2,a3,a4;
+    cal_READBYTE(a1,TIMEOUT_NACK);
+    cal_READBYTE(a2,TIMEOUT_NACK);
+    cal_READBYTE(a3,TIMEOUT_NACK);
+    cal_READBYTE(a4,TIMEOUT_NACK);
+    bytes |= a1;
+    bytes |= a2<<8;
+    bytes |= a3<<16;
+    bytes |= a4<<24;
+    *c = bytes;
+    return 0;
 }
 
 /*
