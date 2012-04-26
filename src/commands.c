@@ -330,7 +330,7 @@ int32_t command_write_memory() {
 	uint8_t number ;
 	uint8_t i ;
 	uint8_t j;
-	uint8_t bytes[4];
+	uint8_t bytes[4] = {0, 0, 0, 0};
 	//if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	cal_SENDACK();
 	cal_READWORD(addr,TIMEOUT_NACK); //data,address
@@ -350,14 +350,15 @@ int32_t command_write_memory() {
 	}
 	databuffer[number+1]=number;
 	cal_READBYTE(checksum,TIMEOUT_NACK);
-	if(checkchecksumbytes(databuffer,number+2,checksum)==-1) {cal_SENDNACK();};
+	if(checkchecksumbytes(databuffer,number+2,checksum)==-1) cal_SENDNACK();
 	switch (hil_validateaddr(addr)) {
 	case 1:
 		for (j=0;j<(number+1);j=j+4) {
-			for (i=0; i<4; i++) {
+			for (i=0; (i<4 && (j+i)<=number); i++) {
 			//WE ARE PRINTING THE NUMBER OF BYTES, TWO IN THIS SENSE!!!!!!!
-				if((j+i)<=number) bytes[i]=databuffer[j+i];
-				else bytes[i]=0;
+				//if((j+i)<=number)
+				bytes[i]=databuffer[j+i];
+				//else bytes[i]=0;
 			}
 		FLASH_ProgramWord(addr+j,*(uint32_t*)bytes);
 		}
