@@ -362,6 +362,7 @@ int32_t command_write_memory() {
 			}
 		FLASH_ProgramWord(addr+j,*(uint32_t*)bytes);
 		}
+		cal_SENDACK();
 		break;
 	case 0:
 		//How to writhe into RAM,the following codes maybe wrong

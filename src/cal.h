@@ -68,12 +68,12 @@ void CANinit(void);
 
 /* Swap desired commented define statement in order to enable-disable logging info. */
 /* Trick is to replace the sending of a string with empty code at compile time. */
-//#define cal_SENDLOG(x)
-
+#define cal_SENDLOG(x)
+/*
 #define cal_SENDLOG(x)\
   if(cal_sendstring((uint8_t*)x))\
   	return -1
-
+*/
 
 
 
