@@ -73,7 +73,8 @@ void CANinit(void);
 #define cal_SENDLOG(x)\
   if(cal_sendstring((uint8_t*)x))\
   	return -1
-*/
+ */
+
 
 
 

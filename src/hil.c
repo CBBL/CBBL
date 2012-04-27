@@ -58,12 +58,12 @@ return 0;
  * @retval
  */
 int32_t hil_globalerasememory(void) {
-int32_t pageaddr = FLASHbase;
-while (pageaddr<FLASHtop) {
-	 FLASH_ErasePage(pageaddr);
-	 pageaddr = pageaddr + FLASHPAGESIZE;
-}
-return 0;
+	int32_t pageaddr = FLASHbase;
+	while (pageaddr<FLASHtop) {
+			 FLASH_ErasePage(pageaddr);
+			 pageaddr = pageaddr + FLASHPAGESIZE;
+		}
+	return 0;
 }
 
 int32_t hil_erasecorrespondingpage(int32_t addr) {

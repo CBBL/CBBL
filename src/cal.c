@@ -70,10 +70,16 @@ int32_t cal_receiveword(uint32_t *c, uint32_t timeout) {
     cal_READBYTE(a2,TIMEOUT_NACK);
     cal_READBYTE(a3,TIMEOUT_NACK);
     cal_READBYTE(a4,TIMEOUT_NACK);
-    bytes |= a1;
-    bytes |= a2<<8;
-    bytes |= a3<<16;
-    bytes |= a4<<24;
+    bytes |= a1<<24;
+    bytes |= a2<<16;
+    bytes |= a3<<8;
+    bytes |= a4;
+    /*
+    addr_buf[ 0 ] = address >> 24;
+      addr_buf[ 1 ] = ( address >> 16 ) & 0xFF;
+      addr_buf[ 2 ] = ( address >> 8 ) & 0xFF;
+      addr_buf[ 3 ] = address & 0xFF;
+      */
     *c = bytes;
     return 0;
 }

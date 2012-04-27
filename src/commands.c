@@ -337,33 +337,34 @@ int32_t command_write_memory() {
 	cal_READBYTE(checksum,TIMEOUT_NACK); //checksum
 	if(checkchecksumword(addr,4,checksum) == -1) {cal_SENDNACK();}
 	cal_SENDACK();
-	cal_READBYTE(number, TIMEOUT_NACK); //number of bytes to be written
+	cal_READBYTE(number, TIMEOUT_NACK); //number of bytes to be written //2
 	//!!must be 2!!!
 	//it is actually number + 1 to be received according to the docs
 	//append number at the end of the buffer
 	//uint8_t *databuffer=(uint8_t*)malloc((number+2)*sizeof(uint8_t));
 	//if (databuffer == NULL) return -2;
 	//for the moment use N=2; need to find a way to dynamically allocate it
-	uint8_t databuffer[number+2];
-	for(i=0;i<number+1;i++) {
-		if(cal_receivebyte(databuffer+i, TIMEOUT_NACK)) return -1;
+	uint8_t databuffer[number+2]; //4
+	for(i=0;i<number+1;i++) { //3 loops
+		if(cal_receivebyte(databuffer+i, TIMEOUT_NACK)) return -1; //41 41 a
 	}
 	databuffer[number+1]=number;
 	cal_READBYTE(checksum,TIMEOUT_NACK);
-	if(checkchecksumbytes(databuffer,number+2,checksum)==-1) cal_SENDNACK();
-	switch (hil_validateaddr(addr)) {
-	case 1:
-		for (j=0;j<(number+1);j=j+4) {
-			for (i=0; (i<4 && (j+i)<=number); i++) {
-			//WE ARE PRINTING THE NUMBER OF BYTES, TWO IN THIS SENSE!!!!!!!
-				//if((j+i)<=number)
-				bytes[i]=databuffer[j+i];
-				//else bytes[i]=0;
+	if(checkchecksumbytes(databuffer,number+2,checksum)==-1) {cal_SENDNACK();}
+	else {
+		switch (hil_validateaddr(addr)) {
+		case 1:
+			for (j=0;j<(number+1);j=j+4) {
+				for (i=0; (i<4 && (j+i)<=number); i++) {
+				//WE ARE PRINTING THE NUMBER OF BYTES, TWO IN THIS SENSE!!!!!!!
+					//if((j+i)<=number)
+					bytes[i]=databuffer[j+i];
+					//else bytes[i]=0;
+				}
+			FLASH_ProgramWord(addr+j,*(uint32_t*)bytes);
 			}
-		FLASH_ProgramWord(addr+j,*(uint32_t*)bytes);
-		}
-		cal_SENDACK();
-		break;
+			cal_SENDACK();
+			break;
 	case 0:
 		//How to writhe into RAM,the following codes maybe wrong
 		for (j=0;j<number+1;j++) {
@@ -377,7 +378,11 @@ int32_t command_write_memory() {
 			hil_reset();
 			break;
 		}
-		else return -1;
+		else {
+			cal_SENDNACK();
+			return -1;
+		}
+	}
 	}
 	return 0;
 }
@@ -392,29 +397,29 @@ int32_t command_erase_memory() {
 	cal_SENDACK();
 	cal_READBYTE(number, TIMEOUT_NACK);  //number of pages to be erased
 	if (number==0xFF) {
-		cal_SENDLOG("-> cmd: global erase requested, starting global erase \r\n");
-		hil_globalerasememory();
-		cal_SENDLOG("-> cmd: global erase terminated, acking \r\n");
-		cal_SENDACK();
-		else return 0;
+			cal_SENDLOG("-> cmd: global erase requested, starting global erase \r\n");
+			hil_globalerasememory();
+			cal_SENDLOG("-> cmd: global erase terminated, acking \r\n");
+			cal_SENDACK();
+			else return 0;
 		}
 	else {
-		cal_SENDLOG("-> cmd: pagewise erase requested \r\n");
-		uint8_t databuffer[number+2];
-		for(i=0;i<number+1;i++) {
-		if(cal_receivebyte(databuffer+i, TIMEOUT_NACK)) return -1;//receive page codes
+			cal_SENDLOG("-> cmd: pagewise erase requested \r\n");
+			uint8_t databuffer[number+2];
+			for(i=0;i<number+1;i++) {
+				if(cal_receivebyte(databuffer+i, TIMEOUT_NACK)) return -1;//receive page codes
+			}
+			databuffer[number+1]=number;
+			cal_READBYTE(checksum, TIMEOUT_NACK);
+			if(checkchecksumbytes(databuffer,number+2,checksum)==-1) cal_SENDNACK();
+			cal_SENDLOG("-> cmd: checksum correct, starting pagewise erase \r\n");
+			for (i=0;i<number+1;i++) {
+			   pageaddr = (databuffer[i]-1)*FLASHPAGESIZE+FLASHbase;
+			   FLASH_ErasePage(pageaddr);
+			}
+			cal_SENDLOG("-> cmd: pagewise erase terminated, acking \r\n");
+			cal_SENDACK();//pass checksum
 		}
-		databuffer[number+1]=number;
-		cal_READBYTE(checksum, TIMEOUT_NACK);
-		if(checkchecksumbytes(databuffer,number+2,checksum)==-1) cal_SENDNACK();
-		cal_SENDLOG("-> cmd: checksum correct, starting pagewise erase \r\n");
-		for (i=0;i<number+1;i++) {
-	       pageaddr = (databuffer[i]-1)*FLASHPAGESIZE+FLASHbase;
-	       FLASH_ErasePage(pageaddr);
-		}
-		cal_SENDLOG("-> cmd: pagewise erase terminated, acking \r\n");
-		cal_SENDACK();//pass checksum
-	}
 	return 0;
 }
 
