@@ -138,8 +138,9 @@ int32_t command_receiveinit() {
  * @param  32-bit word to compute bytewise checksum for
  * @retval 8-bit checksum
  */
-uint8_t calculatechecksum(uint8_t *data, uint8_t length) {
-	uint8_t i, checksum = 0;
+uint8_t calculatechecksum(uint8_t *data, uint32_t length) {
+	uint8_t checksum = 0;
+	uint32_t i;
 	for( i = 0; i < length; i ++ ) {
 	    checksum ^= *data;
 		data = data + 1;
@@ -162,14 +163,14 @@ int32_t checkchecksumword(uint32_t data, uint8_t length, uint8_t checksum) {
 	bytes[1]=(data & 0xFF00)>>8;
 	bytes[2]=(data & 0xFF0000)>>16;
 	bytes[3]=(data & 0xFF000000)>>24;
-	if(calculatechecksum(bytes,length)==checksum) {
+	if(calculatechecksum(bytes,(uint32_t)length)==checksum) {
 		return 0;
 	}
 	else return -1;
 }
 
 
-int32_t checkchecksumbytes(uint8_t *data, uint8_t length, uint8_t checksum) {
+int32_t checkchecksumbytes(uint8_t *data, uint32_t length, uint8_t checksum) {
 	if(calculatechecksum(data,length)==checksum) {
 			return 0;
 		}
@@ -328,8 +329,8 @@ int32_t command_write_memory() {
 	uint8_t checksum ;
 	uint32_t addr ;
 	uint8_t number ;
-	uint8_t i ;
-	uint8_t j;
+	uint32_t i ;
+	uint32_t j;
 	uint8_t bytes[4] = {0, 0, 0, 0};
 	//if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	cal_SENDACK();
@@ -344,8 +345,11 @@ int32_t command_write_memory() {
 	//uint8_t *databuffer=(uint8_t*)malloc((number+2)*sizeof(uint8_t));
 	//if (databuffer == NULL) return -2;
 	//for the moment use N=2; need to find a way to dynamically allocate it
-	uint8_t databuffer[number+2]; //4
-	for(i=0;i<number+1;i++) { //3 loops
+	//expecting nummber+1 bytes, and add one place to append number itself at the end
+	//range: 0 - number+1, places available: number+2
+	uint8_t databuffer[number+2];
+	//loop everywhere except for last place. number+1 loops in total
+	for(i=0;i<number+1;i++) {
 		if(cal_receivebyte(databuffer+i, TIMEOUT_NACK)) return -1; //41 41 a
 	}
 	databuffer[number+1]=number;

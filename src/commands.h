@@ -22,9 +22,9 @@ int32_t receivecommand(void);
 int32_t command_receiveinit(void);
 
 /* Function prototypes ------------------------------------------------------ */
-uint8_t calculatechecksum(uint8_t *data, uint8_t length);
+uint8_t calculatechecksum(uint8_t *data, uint32_t length);
 int32_t checkchecksumword(uint32_t data, uint8_t length, uint8_t checksum);
-int32_t checkchecksumbytes(uint8_t *data, uint8_t length, uint8_t checksum);
+int32_t checkchecksumbytes(uint8_t *data, uint32_t length, uint8_t checksum);
 int32_t jumptoapp(uint32_t addr);
 
 /* Protocol commands handlers ----------------------------------------------- */
