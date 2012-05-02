@@ -9,11 +9,12 @@
   */
 
 #include "includes.h"
+#include "hil.h"
 
 /* Communication peripheral selection --------------------------------------- */
 /* Uncomment the intended device -------------------------------------------- */
-#define USART 1
-//#define CAN 2
+//#define USART 1
+#define CAN CAN1
 
 #ifdef USART
 #include "stm32f10x_usart.h"
@@ -26,8 +27,14 @@
 /* ------------------------------------------------------------------------- */
 /* Defines ----------------------------------------------------------------- */
 #define USART_BAUD 		(115200)
+#define CAN_BAUD		(115200)
+#define CAN_TS1			(0x5)
+#define CAN_TS2			(0x2)
+#define CAN_BRP			(0x10)
+#define CAN_SJW			(0x3)
 #define TIMEOUT_NACK 	(0xFFFFFF)
 #define TIMEOUT_INIT 	(0xFFFFFFFF)
+
 
 /* Exported functions ------------------------------------------------------- */
 int32_t cal_init(void);
@@ -41,7 +48,6 @@ int32_t cal_sendstring(uint8_t *s);
 /* Private function prototypes --------------------------------------------- */
 void GPIOinit(void);
 void USARTinit(void);
-void USARTinitALT(void);
 void CANinit(void);
 
 /* Useful macros ----------------------------------------------------------- */
@@ -65,6 +71,7 @@ void CANinit(void);
   if(cal_sendbyte(STM32_COMM_ACK)==-1)\
     return -1
 
+/* LOG macros ------------------------------------------------------------------ */
 
 /* Swap desired commented define statement in order to enable-disable logging info. */
 /* Trick is to replace the sending of a string with empty code at compile time. */
@@ -73,7 +80,7 @@ void CANinit(void);
 #define cal_SENDLOG(x)\
   if(cal_sendstring((uint8_t*)x))\
   	return -1
- */
+*/
 
 
 

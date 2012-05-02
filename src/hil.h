@@ -10,14 +10,16 @@
 #include "includes.h"
 
 #define STM32F10X_MD
+#define BOARD 07301A-15
+#define PCLK1 (0x112A880) //value given in Hz: 18MHz
 
-#define PIDBYTE2		(0x10)
-#define FLASHbase		(0x08005000) //Page 0 for Main flash memory
-#define FLASHtop		(0x0801FFFF)
-#define FLASHPAGESIZE   (0x400)
-#define SECTORSIZE      (0x1000)
-#define RAMbase         (0x20000200)
-#define RAMtop          (0x20005000)
+#define PIDBYTE2				(0x10)
+#define FLASHbase				(0x08005000)
+#define FLASHtop				(0x0801FFFF)
+#define FLASHPAGESIZE   		(0x400)
+#define SECTORSIZE      		(0x1000)
+#define RAMbase         		(0x20000200)
+#define RAMtop          		(0x20005000)
 #define SCBAIRCR_SYSRESETVALUE  (0xF5FA0004)
 
 /* Exported functions ------------------------------------------------------- */
@@ -38,6 +40,7 @@ int32_t hil_enablewriteprotectionflashmen(uint32_t sector);
 int32_t hil_disablerop(void);
 int32_t hil_enablerop(void);
 int32_t hil_clearram(void);//clear whole ram , should be different from globalerasememory()
+
 
 void hil_clock_init(void);
 void hil_FPECenable(void);

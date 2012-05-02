@@ -17,11 +17,33 @@
  */
 int32_t cal_sendbyte(uint8_t b) {
 	#ifdef USART
+
 	USART_SendData(USART1, (uint16_t)b);
 	while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET) {
 	}
 	return 0;
+
 	#elif defined CAN
+
+	uint8_t mailbox;	//mailbox that will transmit the message
+
+	/* Set up the packet info. */
+	CanTxMsg msg;
+	msg.DLC = 1;		//frame length
+	msg.RTR = 0;		//data frame (not a remote frame)
+	msg.IDE = 0;		//standard identifier (not an extended identifier)
+	msg.StdId = 33;		//identifier value 0; must have been allowed for entrance by a filter bank
+	msg.ExtId = 0;		//identifier value 0; must have been allowed for entrance by a filter bank
+	msg.Data[0] = b;	//data
+
+	/* Fire. */
+	mailbox = CAN_Transmit(CAN1, &msg);
+
+	/* Hard Fault if no mailbox is found empty. */
+	if (mailbox==CAN_TxStatus_NoMailBox) HardFault_Handler();
+
+	return 0;
+
 	#endif
 	return -1;
 }
@@ -45,15 +67,28 @@ int32_t cal_receivebyte(uint8_t *c, uint32_t timeout) {
 
 	#elif defined CAN
 
+	CanRxMsg msg0, msg1;
+
+	uint8_t f0, f1;
+
+	/* Receive the message from FIFO0. */
+	CAN_Receive(CAN1, CAN_FIFO0, &msg0);
+
+	/* Receive the message from FIFO0. */
+	CAN_Receive(CAN1, CAN_FIFO1, &msg1);
+
+	f0 = msg0.Data[0];
+	f1 = msg1.Data[0];
+
+	/* Extract the data. */
+	*c = msg0.Data[0];
+
+	return 0;
 	#endif
 	return -1;
 }
 
-/*
- * @brief  Receive word(32bit) through selected communication mode
- * @param  Pointer to received word container
- * @retval 0 if successful, -1 if not successful/timeout expired
- */
+
 /*
 int32_t cal_receiveword(uint32_t *c, uint32_t timeout) {
 	uint8_t bytes[4], i;
@@ -63,6 +98,11 @@ int32_t cal_receiveword(uint32_t *c, uint32_t timeout) {
 }
 */
 
+/*
+ * @brief  Receive word(32bit) through selected communication mode
+ * @param  Pointer to received word container
+ * @retval 0 if successful, -1 if not successful/timeout expired
+ */
 int32_t cal_receiveword(uint32_t *c, uint32_t timeout) {
 	uint32_t bytes = 0;
     uint8_t a1,a2,a3,a4;
@@ -74,12 +114,6 @@ int32_t cal_receiveword(uint32_t *c, uint32_t timeout) {
     bytes |= a2<<16;
     bytes |= a3<<8;
     bytes |= a4;
-    /*
-    addr_buf[ 0 ] = address >> 24;
-      addr_buf[ 1 ] = ( address >> 16 ) & 0xFF;
-      addr_buf[ 2 ] = ( address >> 8 ) & 0xFF;
-      addr_buf[ 3 ] = address & 0xFF;
-      */
     *c = bytes;
     return 0;
 }
@@ -122,7 +156,6 @@ int32_t cal_init(void) {
 
 	#ifdef USART
 	USARTinit();
-	//USARTinitALT();
 	#elif defined CAN
 	CANinit();
 	#endif
@@ -179,6 +212,108 @@ void USARTinit(void) {
 }
 
 /*
+ * @brief  Initializes CAN peripheral
+ * @param  void
+ * @retval void
+ */
+void CANinit() {
+
+	uint32_t stdmsgid = 0;
+
+	/* This id must be between 0-13 as there are 14 filter banks available in MD devices. */
+	uint32_t filterbankid = 0;
+
+	/* bxCAN on APB1 bus clock enable. */
+	RCC->APB1ENR |= RCC_APB1ENR_CAN1EN;
+
+	/* Enable clock on GPIOB. */
+	RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;
+
+	/* Remap CAN pinouts to GPIOB's PB8, PB9: bits 13=0 14=1. */
+	RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
+	AFIO->MAPR |= AFIO_MAPR_CAN_REMAP_REMAP2;
+	AFIO->MAPR &= ~0x00002000;
+
+	/*Configure GPIOB (PB9, PB10) output and input mode for CAN. */
+	/*CAN TX as alternate function push-pull: bits 4-7 to 1011=B. */
+	/*CAN RX as input floating: bits 0-3 to 0100=4. */
+	GPIOB->CRH |= 0x444444B4;
+
+	/* Enter CAN initialization mode. */
+	CAN1->MCR |= CAN_MCR_INRQ;
+
+	/* Wait until init mode entered. */
+	while (((CAN1->MSR & CAN_MSR_INAK) != CAN_MSR_INAK));
+
+	/* Clear BTR. */
+	CAN1->BTR &= ~0xC37F03FF;
+
+	/* Use hot self-test mode (silent+loop back). */
+	CAN1->BTR |= (CAN_BTR_SILM | CAN_BTR_LBKM);
+
+	/* CAN module still working during debug. */
+	CAN1->MCR |= 0x00010000;
+
+	/* Use automatic wakeup mode. */
+	CAN1->MCR |= CAN_MCR_AWUM;
+
+	/* Use automatic retransmission mode. */
+	CAN1->MCR &= ~(uint32_t)CAN_MCR_NART;
+
+	/* Receive FIFO locked against overrun; incoming messages when FIFO full will be discarded. */
+	CAN1->MCR |= CAN_MCR_RFLM;
+
+	/* When many transmit FIFOs are ready, transmit in request chronological order. */
+	CAN1->MCR |= CAN_MCR_TXFP;
+
+	/* Set CAN baud rate prescaler. */
+	CAN1->BTR |= CAN_BRP;
+
+	/* Set TS1, TS2 to achieve 0.7*BitTime=SampleTime @18MHz. */
+	CAN1->BTR |= (CAN_SJW << 24) | (CAN_TS2 << 20) | (CAN_TS1 << 16);
+
+	uint32_t btr = CAN1->BTR;
+	btr = 0;
+
+	/* ID of the messages that are allowed to enter receive FIFOs
+	 * adapted for standard id (not extended) format. */
+	stdmsgid  |= (33) | CAN_ID_STD;
+
+	/* Enter initialization mode for filter banks and in particular for the specified bank. */
+	CAN1->FMR |= CAN_FMR_FINIT;
+	CAN1->FA1R &= ~(uint32_t)(1 << filterbankid);
+
+	/* Set 32-bit scale filtering. */
+	CAN1->FS1R |= (uint32_t)(1 << filterbankid);
+
+	/* Set identifier list mode. */
+	CAN1->FM1R |= (uint32_t)(1 << filterbankid);
+
+	/* Assign allowed message ids to the selected filter bank. */
+	CAN1->sFilterRegister[filterbankid].FR1 = stdmsgid;
+	CAN1->sFilterRegister[filterbankid].FR2 = stdmsgid;
+
+	/* Messages passing the selected bank will flow into FIFO0. */
+	CAN1->FFA1R &= ~(uint32_t)(1 << filterbankid);
+
+	/* Activate the selected bank. */
+	CAN1->FA1R |= (uint32_t)(1 << filterbankid);
+
+	/* Leave initialization mode for filter banks. */
+	CAN1->FMR &= ~CAN_FMR_FINIT;
+
+	/*Enter CAN normal mode. */
+	CAN1->MCR &= ~CAN_MCR_INRQ;
+
+	/* Wait until normal mode entered. */
+	while (((CAN1->MSR & CAN_MSR_INAK) == CAN_MSR_INAK));
+
+	/* Wait transmit mailbox empty. */
+	//while ((CAN->TSR & CAN_TSR_TME0) == 0);
+}
+
+
+/*
  * @brief  Initialize GPIO peripheral
  * @param  void
  * @retval void
@@ -204,30 +339,6 @@ void GPIOinit(void) {
 
 void cal_baudrate(void) {
 	return;
-}
-
-void USARTinitALT() {
-
-	  USART_InitTypeDef USART_InitStructure;
-
-	  /* USART resources configuration (Clock, GPIO pins and USART registers) ----*/
-	  /* USART configured as follow:
-	        - BaudRate = 115200 baud
-	        - Word Length = 8 Bits
-	        - One Stop Bit
-	        - No parity
-	        - Hardware flow control disabled (RTS and CTS signals)
-	        - Receive and transmit enabled
-	  */
-
-	  USART_InitStructure.USART_BaudRate = 115200;
-	  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-	  USART_InitStructure.USART_StopBits = USART_StopBits_1;
-	  USART_InitStructure.USART_Parity = USART_Parity_No;
-	  USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-	  USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-
-	  USART_Init(USART1, &USART_InitStructure);
 }
 
 /**************************** Politecnico di Milano ************END OF FILE****/

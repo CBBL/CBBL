@@ -114,7 +114,14 @@ int32_t receivecommand(void) {
 int32_t command_receiveinit() {
 	cal_SENDLOG("-> waiting for init byte \r\n");
 	uint8_t p;
+	#ifdef CAN
+	cal_SENDBYTE(0x7F);
+	#endif
+	delay(0xFFF);
 	cal_READBYTE(p, TIMEOUT_INIT);
+	#ifdef CAN
+	cal_READBYTE(p, TIMEOUT_INIT);
+	#endif
 	if(p==STM32_CMD_INIT) {
 		GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
 		cal_SENDACK();
@@ -313,42 +320,42 @@ int32_t command_read_memory() {
 int32_t command_go() {
 	uint8_t checksum ;
 	uint32_t addr ;
-	if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
-	if(cal_sendbyte(STM32_COMM_ACK)==-1) return -1;
-	if(cal_receiveword((uint32_t *)&addr, TIMEOUT_NACK) == -1) return -1;  //data,address
-	if(cal_receivebyte((uint8_t *)&checksum, TIMEOUT_NACK) == -1) return -1;  //checksum
-	if(cal_sendbyte(STM32_COMM_ACK)==-1) return -1;
-	if(!hil_validateaddr(addr) == 1) {cal_sendbyte(STM32_COMM_NACK); return -1;}
-	if(checkchecksumword(addr,4,checksum) == -1) {cal_sendbyte(STM32_COMM_NACK); return -1;}
+	//if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	cal_SENDACK();
+	cal_READWORD(addr,TIMEOUT_NACK);
+	cal_READBYTE(checksum,TIMEOUT_NACK); //checksum
+	if(checkchecksumword(addr,4,checksum) == -1) {cal_SENDNACK();}
+	if(!hil_validateaddr(addr) == 1) {cal_SENDNACK();}
+	cal_SENDACK();
+	//cal_SENDACK();
 	jumptoapp(addr);
 	return 0;
 }
 
 int32_t command_write_memory() {
-	uint8_t checksum ;
-	uint32_t addr ;
-	uint8_t number ;
-	uint32_t i ;
-	uint32_t j;
+
+	uint32_t addr;
+	uint8_t number;
+	uint8_t checksum;
 	uint8_t bytes[4] = {0, 0, 0, 0};
+	uint32_t i, j;
+
 	//if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	cal_SENDACK();
-	cal_READWORD(addr,TIMEOUT_NACK); //data,address
-	cal_READBYTE(checksum,TIMEOUT_NACK); //checksum
+
+	/* Receive address. */
+	cal_READWORD(addr,TIMEOUT_NACK);
+	cal_READBYTE(checksum,TIMEOUT_NACK);
 	if(checkchecksumword(addr,4,checksum) == -1) {cal_SENDNACK();}
 	cal_SENDACK();
-	cal_READBYTE(number, TIMEOUT_NACK); //number of bytes to be written //2
-	//!!must be 2!!!
-	//it is actually number + 1 to be received according to the docs
-	//append number at the end of the buffer
-	//uint8_t *databuffer=(uint8_t*)malloc((number+2)*sizeof(uint8_t));
-	//if (databuffer == NULL) return -2;
-	//for the moment use N=2; need to find a way to dynamically allocate it
-	//expecting nummber+1 bytes, and add one place to append number itself at the end
-	//range: 0 - number+1, places available: number+2
+
+	/* Receive data packet. */
+	/* it is actually number + 1 to be received according to the docs
+     * expecting nummber+1 bytes, and add one place to append number itself at the end
+     * range: 0 - number+1, places available: number+2
+     */
+	cal_READBYTE(number, TIMEOUT_NACK);
 	uint8_t databuffer[number+2];
-	//loop everywhere except for last place. number+1 loops in total
 	for(i=0;i<number+1;i++) {
 		if(cal_receivebyte(databuffer+i, TIMEOUT_NACK)) return -1; //41 41 a
 	}
@@ -485,7 +492,7 @@ int32_t command_write_protect() {
 	cal_receivebyte((uint8_t *)&number, TIMEOUT_NACK); //number of sectors to be protected (1 byte)
 	uint8_t databuffer[number+2];  //sector code
 	for(i=0;i<number+1;i++) {
-	if(cal_receivebyte(databuffer+i, TIMEOUT_NACK)) return -1;//receive sector codes
+		if(cal_receivebyte(databuffer+i, TIMEOUT_NACK)) return -1;//receive sector codes
 	}
 	databuffer[number+1]=number;
 	if(cal_receivebyte((uint8_t *)&checksum, TIMEOUT_NACK) == -1) return -1;

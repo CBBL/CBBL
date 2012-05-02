@@ -149,3 +149,12 @@ Various trials for reset:
 
 hi
 
+
+//to obtain 0.7*bitTime = sampleTime set TS1=5 and TS2=2
+	uint32_t ts1 = 5;
+	uint32_t ts2 = 2;
+	uint32_t tot, brp;
+
+	//compute brp
+	tot = 1+(ts1+1)+(ts2+1);
+	brp = (pclk1)/(tot*canbaud);

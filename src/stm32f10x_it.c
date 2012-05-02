@@ -60,10 +60,10 @@ void HardFault_Handler(void)
   while (1)
   {
 	  i=0;
-	  while (i<0xFFFFFF) i++;
+	  while (i<0xFFFFF) i++;
 	  GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
 	  i=0;
-	  while (i<0xFFFFFF) i++;
+	  while (i<0xFFFFF) i++;
 	  GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BS1 | GPIO_BSRR_BS2 | GPIO_BSRR_BS3;
   }
 }
