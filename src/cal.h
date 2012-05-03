@@ -28,10 +28,10 @@
 /* Defines ----------------------------------------------------------------- */
 #define USART_BAUD 		(115200)
 #define CAN_BAUD		(115200)
-#define CAN_TS1			(0x5)
-#define CAN_TS2			(0x2)
-#define CAN_BRP			(0x10)
-#define CAN_SJW			(0x3)
+#define CAN_TS1			(0x3)
+#define CAN_TS2			(0x3)
+#define CAN_BRP			(0x3)
+#define CAN_SJW			(0x1)
 #define TIMEOUT_NACK 	(0xFFFFFF)
 #define TIMEOUT_INIT 	(0xFFFFFFFF)
 

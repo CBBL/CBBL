@@ -23,6 +23,8 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 
+CAN_TypeDef *CanStat;
+
 /* Private function prototypes -----------------------------------------------*/
 //static void IAP_Init(void);
 //static void IO_Init(void);
@@ -50,6 +52,8 @@ int main(void)
   cal_SENDLOG("POLIMI, 2011/2012\r\n");
   cal_SENDLOG("==========================\r\n");
   cal_SENDLOG("\r\n");
+
+  CanStat = CAN1;
 
   /* Test if button on the board is pressed during reset or if it was a sw-triggered reset. */
   if (((GPIOB->IDR & GPIO_IDR_IDR1) == 0x00 && resettype == 0) || resettype == 1)

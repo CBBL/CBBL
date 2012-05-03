@@ -117,11 +117,8 @@ int32_t command_receiveinit() {
 	#ifdef CAN
 	cal_SENDBYTE(0x7F);
 	#endif
-	delay(0xFFF);
+	delay(0xFFFFF);
 	cal_READBYTE(p, TIMEOUT_INIT);
-	#ifdef CAN
-	cal_READBYTE(p, TIMEOUT_INIT);
-	#endif
 	if(p==STM32_CMD_INIT) {
 		GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
 		cal_SENDACK();

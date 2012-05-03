@@ -156,7 +156,7 @@ void hil_clock_init(void) {
 	while (!(RCC->CR & RCC_CR_PLLRDY));
 
 	/* AHB, APB1 and APB2 prescaler setup. */
-	RCC->CFGR |= RCC_CFGR_HPRE_DIV1 | RCC_CFGR_PPRE1_DIV2 | RCC_CFGR_PPRE2_DIV1;
+	RCC->CFGR |= RCC_CFGR_HPRE_DIV1 | RCC_CFGR_PPRE1_DIV1 | RCC_CFGR_PPRE2_DIV1;
 
 	/* FLASH wait states setup. */
 	FLASH->ACR |= FLASH_ACR_LATENCY_2;

@@ -32,7 +32,7 @@ int32_t cal_sendbyte(uint8_t b) {
 	msg.DLC = 1;		//frame length
 	msg.RTR = 0;		//data frame (not a remote frame)
 	msg.IDE = 0;		//standard identifier (not an extended identifier)
-	msg.StdId = 33;		//identifier value 0; must have been allowed for entrance by a filter bank
+	msg.StdId = 0;		//identifier value 0; must have been allowed for entrance by a filter bank
 	msg.ExtId = 0;		//identifier value 0; must have been allowed for entrance by a filter bank
 	msg.Data[0] = b;	//data
 
@@ -69,7 +69,11 @@ int32_t cal_receivebyte(uint8_t *c, uint32_t timeout) {
 
 	CanRxMsg msg0, msg1;
 
-	uint8_t f0, f1;
+	uint8_t f0, f1, s0, s1;
+
+	/* Fetch status of receive FIFOs. */
+	s0 = CAN1->RF0R;
+	s1 = CAN1->RF1R;
 
 	/* Receive the message from FIFO0. */
 	CAN_Receive(CAN1, CAN_FIFO0, &msg0);
@@ -245,7 +249,7 @@ void CANinit() {
 	/* Wait until init mode entered. */
 	while (((CAN1->MSR & CAN_MSR_INAK) != CAN_MSR_INAK));
 
-	/* Clear BTR. */
+	/* Clean BTR. */
 	CAN1->BTR &= ~0xC37F03FF;
 
 	/* Use hot self-test mode (silent+loop back). */
@@ -277,7 +281,7 @@ void CANinit() {
 
 	/* ID of the messages that are allowed to enter receive FIFOs
 	 * adapted for standard id (not extended) format. */
-	stdmsgid  |= (33) | CAN_ID_STD;
+	stdmsgid  |= (0) | CAN_ID_STD;
 
 	/* Enter initialization mode for filter banks and in particular for the specified bank. */
 	CAN1->FMR |= CAN_FMR_FINIT;
@@ -286,8 +290,8 @@ void CANinit() {
 	/* Set 32-bit scale filtering. */
 	CAN1->FS1R |= (uint32_t)(1 << filterbankid);
 
-	/* Set identifier list mode. */
-	CAN1->FM1R |= (uint32_t)(1 << filterbankid);
+	/* Set mask mode. */
+	CAN1->FM1R &= ~(uint32_t)(1 << filterbankid);
 
 	/* Assign allowed message ids to the selected filter bank. */
 	CAN1->sFilterRegister[filterbankid].FR1 = stdmsgid;
@@ -307,6 +311,9 @@ void CANinit() {
 
 	/* Wait until normal mode entered. */
 	while (((CAN1->MSR & CAN_MSR_INAK) == CAN_MSR_INAK));
+
+	/* Exit sleep mode (need discovered while debugging). */
+	CAN1->MCR &= ~CAN_MCR_SLEEP;
 
 	/* Wait transmit mailbox empty. */
 	//while ((CAN->TSR & CAN_TSR_TME0) == 0);
