@@ -8,14 +8,16 @@ remember to call ISSWRESET in main to distinguish different flow for the program
 array of function pointers to select comm peripheral at runtime
 (streams so implemented in ChibiOS)
 
+/*Done
 REMEMBER TO DEFINE pFunction TYPE WHEN NOT INCLUDING COMMON.H ANYMORE
 
+/*Done
 why in the command go there is an addr+4?
 why is dereferencing needed in the jump in the go command?
 why __set_MSP(*(uint32_t*) addr);?
 
 
-
+/*Done
 Issues with mass erase when write unprotect, pages, bla bla bla:
 -----
 Hi,

@@ -10,21 +10,26 @@
 
 #include "cal.h"
 
+/** @addtogroup CBBL
+  * @{
+  */
+
 /*
  * @brief  Send byte through selected communication mode
  * @param  Byte to be sent
  * @retval 0 if successful, -1 if not successful
  */
 int32_t cal_sendbyte(uint8_t b) {
-	#ifdef USART
-
-	USART_SendData(USART1, (uint16_t)b);
-	while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET) {
+	if (comm_peripheral == USART)
+	{
+		USART_SendData(USART1, (uint16_t)b);
+		while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET) {
+		}
+		return 0;
 	}
-	return 0;
 
-	#elif defined CAN
-
+	else
+	{
 	uint8_t mailbox;	//mailbox that will transmit the message
 
 	/* Set up the packet info. */
@@ -43,8 +48,8 @@ int32_t cal_sendbyte(uint8_t b) {
 	if (mailbox==CAN_TxStatus_NoMailBox) HardFault_Handler();
 
 	return 0;
+	}
 
-	#endif
 	return -1;
 }
 
@@ -56,17 +61,19 @@ int32_t cal_sendbyte(uint8_t b) {
  */
 int32_t cal_receivebyte(uint8_t *c, uint32_t timeout) {
 
-	#ifdef USART
-	while (timeout-- > 0)	{
-		if ( USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != RESET)	{
-			*c = USART1->DR;
-			return 0;
+	if (comm_peripheral == USART)
+	{
+		while (timeout-- > 0)	{
+			if ( USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != RESET)	{
+				*c = USART1->DR;
+				return 0;
+			}
 		}
+		return -1;
 	}
-	return -1;
 
-	#elif defined CAN
-
+	else
+	{
 	CanRxMsg msg0, msg1;
 
 	uint8_t f0, f1, s0, s1;
@@ -78,7 +85,7 @@ int32_t cal_receivebyte(uint8_t *c, uint32_t timeout) {
 	/* Receive the message from FIFO0. */
 	CAN_Receive(CAN1, CAN_FIFO0, &msg0);
 
-	/* Receive the message from FIFO0. */
+	/* Receive the message from FIFO1. */
 	CAN_Receive(CAN1, CAN_FIFO1, &msg1);
 
 	f0 = msg0.Data[0];
@@ -88,7 +95,8 @@ int32_t cal_receivebyte(uint8_t *c, uint32_t timeout) {
 	*c = msg0.Data[0];
 
 	return 0;
-	#endif
+	}
+
 	return -1;
 }
 
@@ -158,11 +166,11 @@ int32_t cal_init(void) {
 
 	GPIOinit();
 
-	#ifdef USART
+	//#ifdef USART
 	USARTinit();
-	#elif defined CAN
+	//#elif defined CAN
 	CANinit();
-	#endif
+	//#endif
 
 	return 0;
 }
@@ -177,10 +185,6 @@ void USARTinit(void) {
 
 		  /*Baud Rate at 115200. */
 		  uint32_t BRR=0x00000271;
-
-		  /*GPIOA, GPIOB on APB2 bus clock enable. */
-		  /* DONE IN GPIOinit. */
-		  //RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN | RCC_APB2ENR_AFIOEN;
 
 		  /*USART1 on APB2 bus clock enable. */
 		  RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
@@ -222,7 +226,7 @@ void USARTinit(void) {
  */
 void CANinit() {
 
-	uint32_t stdmsgid = 0;
+	//uint32_t stdmsgid = 0;
 
 	/* This id must be between 0-13 as there are 14 filter banks available in MD devices. */
 	uint32_t filterbankid = 0;
@@ -267,13 +271,13 @@ void CANinit() {
 	/* Receive FIFO locked against overrun; incoming messages when FIFO full will be discarded. */
 	CAN1->MCR |= CAN_MCR_RFLM;
 
-	/* When many transmit FIFOs are ready, transmit in request chronological order. */
+	/* When many transmit Mailboxes are ready, transmit in request chronological order. */
 	CAN1->MCR |= CAN_MCR_TXFP;
 
 	/* Set CAN baud rate prescaler. */
 	CAN1->BTR |= CAN_BRP;
 
-	/* Set TS1, TS2 to achieve 0.7*BitTime=SampleTime @18MHz. */
+	/* Set TS1, TS2 to achieve 0.7*BitTime=SampleTime @36MHz. */
 	CAN1->BTR |= (CAN_SJW << 24) | (CAN_TS2 << 20) | (CAN_TS1 << 16);
 
 	uint32_t btr = CAN1->BTR;
@@ -281,7 +285,7 @@ void CANinit() {
 
 	/* ID of the messages that are allowed to enter receive FIFOs
 	 * adapted for standard id (not extended) format. */
-	stdmsgid  |= (0) | CAN_ID_STD;
+	//stdmsgid  |= (0) | CAN_ID_STD;
 
 	/* Enter initialization mode for filter banks and in particular for the specified bank. */
 	CAN1->FMR |= CAN_FMR_FINIT;
@@ -294,8 +298,8 @@ void CANinit() {
 	CAN1->FM1R &= ~(uint32_t)(1 << filterbankid);
 
 	/* Assign allowed message ids to the selected filter bank. */
-	CAN1->sFilterRegister[filterbankid].FR1 = stdmsgid;
-	CAN1->sFilterRegister[filterbankid].FR2 = stdmsgid;
+	CAN1->sFilterRegister[filterbankid].FR1 = (uint32_t)MSGID;
+	CAN1->sFilterRegister[filterbankid].FR2 = (uint32_t)MSGID;
 
 	/* Messages passing the selected bank will flow into FIFO0. */
 	CAN1->FFA1R &= ~(uint32_t)(1 << filterbankid);

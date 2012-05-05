@@ -10,6 +10,10 @@
 
 #include "hil.h"
 
+/** @addtogroup CBBL
+  * @{
+  */
+
 /*
  * @brief  Get LSB of the device's PID
  * @param  void

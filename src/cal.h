@@ -13,14 +13,17 @@
 
 /* Communication peripheral selection --------------------------------------- */
 /* Uncomment the intended device -------------------------------------------- */
-//#define USART 1
-#define CAN CAN1
+#define USART 1
+#define CAN 2
 
-#ifdef USART
+/* Global variables --------------------------------------------------- */
+uint8_t comm_peripheral;
+
+//#ifdef USART
 #include "stm32f10x_usart.h"
-#elif defined CAN
+//#elif defined CAN
 #include "stm32f10x_can.h"
-#endif
+//#endif
 
 /* ------------------------------------------------------------------------- */
 
@@ -34,6 +37,7 @@
 #define CAN_SJW			(0x1)
 #define TIMEOUT_NACK 	(0xFFFFFF)
 #define TIMEOUT_INIT 	(0xFFFFFFFF)
+#define MSGID			(0x00);
 
 
 /* Exported functions ------------------------------------------------------- */

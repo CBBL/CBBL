@@ -1,13 +1,12 @@
 /**
   ******************************************************************************
-  * @file    IAP/src/stm32f10x_it.c 
-  * @author  MCD Application Team
-  * @version V3.3.0
-  * @date    10/15/2010
-  * @brief   Main Interrupt Service Routines.
-  *          This file provides template for all exceptions handler and peripherals
-  *          interrupt service routine.
+  * @file    CBBL_usart/src/stm32f10x_it.c
+  * @author  Marco Zavatta, Yin Zhining
+  * @version V1.0
+  * @date    03/04/2012
+  * @brief   This file contains the bodies of the interrupt handlers
   ******************************************************************************
+  *
   * @copy
   *
   * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
@@ -23,7 +22,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f10x_it.h"
 
-/** @addtogroup IAP
+/** @addtogroup CBBL
   * @{
   */
 

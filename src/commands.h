@@ -12,7 +12,6 @@
 #include "cal.h"
 #include "hil.h"
 
-//REMEMBER TO DEFINE pFunction TYPE WHEN NOT INCLUDING COMMON.H ANYMORE
 typedef  void (*pFunction)(void);
 
 #define BLVERSION (0x10)

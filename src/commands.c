@@ -10,8 +10,10 @@
 
 #include "commands.h"
 
-// Check receivebyte function that it will make sure after fetching the current byte, it will fetch the following bytes.
-//DONE!!! for USART. Refer to USART reception explanation on page767 of the reference manual RM0008
+/** @addtogroup CBBL
+  * @{
+  */
+
 /*
  * @brief  Receives the command code from the host side and accordingly runs the command
  * @param  void
@@ -114,10 +116,10 @@ int32_t receivecommand(void) {
 int32_t command_receiveinit() {
 	cal_SENDLOG("-> waiting for init byte \r\n");
 	uint8_t p;
-	#ifdef CAN
+	if (comm_peripheral == CAN) {
 	cal_SENDBYTE(0x7F);
 	delay(0xFFFFF);
-	#endif
+	}
 	cal_READBYTE(p, TIMEOUT_INIT);
 	if(p==STM32_CMD_INIT) {
 		GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
@@ -193,10 +195,10 @@ int32_t jumptoapp(uint32_t addr) {
 	/* The second entry of the vector table contains the reset_handler function. */
 	JumpAddress = *(uint32_t*) (addr + 4);
 
-	/* Assign the function pointer */
+	/* Assign the function pointer. */
 	JumpToApp= (pFunction) JumpAddress;
 
-	/* Initialize user application's Stack Pointer */
+	/* Initialize user application's Stack Pointer. */
 	__set_MSP(*(uint32_t*) addr);
 
 	/* Jump!. */
