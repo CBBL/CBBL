@@ -115,11 +115,11 @@ int32_t receivecommand(void) {
  */
 int32_t command_receiveinit() {
 	cal_SENDLOG("-> waiting for init byte \r\n");
-	uint8_t p;
-	if (comm_peripheral == CAN) {
-	cal_SENDBYTE(0x7F);
-	delay(0xFFFFF);
-	}
+	uint8_t p = 0x9;
+	//while (comm_peripheral == CAN) {
+	//cal_SENDBYTE(0x7F);
+	//delay(0xFFFFF);
+	//}
 	cal_READBYTE(p, TIMEOUT_INIT);
 	if(p==STM32_CMD_INIT) {
 		GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;

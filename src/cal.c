@@ -76,17 +76,17 @@ int32_t cal_receivebyte(uint8_t *c, uint32_t timeout) {
 	{
 	CanRxMsg msg0, msg1;
 
-	uint8_t f0, f1, s0, s1;
+	uint8_t f0, f1, s0;
 
 	/* Fetch status of receive FIFOs. */
 	s0 = CAN1->RF0R;
-	s1 = CAN1->RF1R;
-
+	//s1 = CAN1->RF1R;
+	while (!CAN_MessagePending(CAN1, CAN_FIFO0));
 	/* Receive the message from FIFO0. */
 	CAN_Receive(CAN1, CAN_FIFO0, &msg0);
 
 	/* Receive the message from FIFO1. */
-	CAN_Receive(CAN1, CAN_FIFO1, &msg1);
+	//CAN_Receive(CAN1, CAN_FIFO1, &msg1);
 
 	f0 = msg0.Data[0];
 	f1 = msg1.Data[0];
@@ -240,12 +240,13 @@ void CANinit() {
 	/* Remap CAN pinouts to GPIOB's PB8, PB9: bits 13=0 14=1. */
 	RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
 	AFIO->MAPR |= AFIO_MAPR_CAN_REMAP_REMAP2;
-	AFIO->MAPR &= ~0x00002000;
+	//AFIO->MAPR &= ~0x00002000;
 
 	/*Configure GPIOB (PB9, PB10) output and input mode for CAN. */
 	/*CAN TX as alternate function push-pull: bits 4-7 to 1011=B. */
 	/*CAN RX as input floating: bits 0-3 to 0100=4. */
-	GPIOB->CRH |= 0x444444B4;
+	GPIOB->CRH &= 0xFFFFFF00;
+	GPIOB->CRH |= 0x000000B4;
 
 	/* Enter CAN initialization mode. */
 	CAN1->MCR |= CAN_MCR_INRQ;
@@ -253,35 +254,37 @@ void CANinit() {
 	/* Wait until init mode entered. */
 	while (((CAN1->MSR & CAN_MSR_INAK) != CAN_MSR_INAK));
 
-	/* Clean BTR. */
-	CAN1->BTR &= ~0xC37F03FF;
-
-	/* Use hot self-test mode (silent+loop back). */
-	CAN1->BTR |= (CAN_BTR_SILM | CAN_BTR_LBKM);
-
 	/* CAN module still working during debug. */
-	CAN1->MCR |= 0x00010000;
+	//CAN1->MCR &= ~0x00010000;
 
 	/* Use automatic wakeup mode. */
-	CAN1->MCR |= CAN_MCR_AWUM;
+	//CAN1->MCR |= CAN_MCR_AWUM;
 
 	/* Use automatic retransmission mode. */
-	CAN1->MCR &= ~(uint32_t)CAN_MCR_NART;
+	CAN1->MCR |= CAN_MCR_NART;
+	//&= ~(uint32_t)
 
 	/* Receive FIFO locked against overrun; incoming messages when FIFO full will be discarded. */
-	CAN1->MCR |= CAN_MCR_RFLM;
+	//CAN1->MCR |= CAN_MCR_RFLM;
 
 	/* When many transmit Mailboxes are ready, transmit in request chronological order. */
 	CAN1->MCR |= CAN_MCR_TXFP;
 
+	uint32_t btr = 0;
+
+	/* Use hot self-test mode (silent+loop back). */
+	//btr |= (CAN_BTR_SILM | CAN_BTR_LBKM);
+
 	/* Set CAN baud rate prescaler. */
-	CAN1->BTR |= CAN_BRP;
+	btr |= CAN_BRP;
 
 	/* Set TS1, TS2 to achieve 0.7*BitTime=SampleTime @36MHz. */
-	CAN1->BTR |= (CAN_SJW << 24) | (CAN_TS2 << 20) | (CAN_TS1 << 16);
+	btr |= (CAN_SJW << 24) | (CAN_TS2 << 20) | (CAN_TS1 << 16);
 
-	uint32_t btr = CAN1->BTR;
-	btr = 0;
+	CAN1->BTR = btr;
+
+	//uint32_t btr = CAN1->BTR;
+	//btr = 0;
 
 	/* ID of the messages that are allowed to enter receive FIFOs
 	 * adapted for standard id (not extended) format. */
