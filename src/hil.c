@@ -47,6 +47,15 @@ int32_t hil_validateaddr(uint32_t addr) {
 	else return -1;
 }
 
+/*
+ * @brief  Reads a word from the FLASH memory
+ * @param  void
+ * @retval the 32-bit word stored at address,address+1,address+2,address+3
+ */
+uint32_t hil_readFLASH (uint32_t address) {
+	return *(uint32_t*)(address);
+}
+
 int32_t hil_writeflash(uint32_t startaddr) {
 	//NEED TO MAKE SURE IT'S NOT THE BOOTLOADER'S PAGE ITSELF
 return 0;

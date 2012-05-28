@@ -115,11 +115,11 @@ int32_t receivecommand(void) {
  */
 int32_t command_receiveinit() {
 	cal_SENDLOG("-> waiting for init byte \r\n");
-	uint8_t p;
-	if (comm_peripheral == CAN) {
-	cal_SENDBYTE(0x7F);
-	delay(0xFFFFF);
-	}
+	uint8_t p = 0x9;
+	//while (comm_peripheral == CAN) {
+	//cal_SENDBYTE(0x7F);
+	//delay(0xFFFFF);
+	//}
 	cal_READBYTE(p, TIMEOUT_INIT);
 	if(p==STM32_CMD_INIT) {
 		GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
@@ -135,7 +135,7 @@ int32_t command_receiveinit() {
 	else {
 		GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BS1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
 		cal_SENDLOG("-> receive init fail \r\n");
-		return -1; //-1 means receiveinit failed
+		return -1;
 	}
 }
 
@@ -272,17 +272,16 @@ int32_t command_get_id() {
 }
 
 /*
- * @brief  Read Device Memory(no hil used during sending data)
+ * @brief  Read Device Memory
  * @param  none
  * @retval 0 if successful
  * 		  -1 in unsuccseful
  */
 int32_t command_read_memory() {
 	cal_SENDLOG("-> cmd: read memory \r\n");
-	uint8_t checksum ;
-	uint32_t addr ;
-	uint8_t number ;
-	uint8_t i;
+	uint8_t checksum, number;
+	uint32_t addr, i, temp;
+
 	/* Check ROP. */
 	//if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	cal_SENDACK();
@@ -301,9 +300,13 @@ int32_t command_read_memory() {
 	cal_SENDACK();
 
     /* Send Data. */
-	/* Maybe should go through hil.c but in which way? */
-	for (i = 0;i < number;i++) {
-    	if(cal_sendbyte(addr+i)==-1) return -1;
+	/* Word-by-word as the returned value by hil_readFLASH */
+	for (i = 0;i < (number+1);i=i+4) {
+		temp = hil_readFLASH(addr+i);
+		cal_SENDBYTE(temp & 0xFF);
+		cal_SENDBYTE((temp>>8) & 0xFF);
+		cal_SENDBYTE((temp>>16) & 0xFF);
+		cal_SENDBYTE(temp>>24);
     }
 	cal_SENDLOG("-> cmd: read memory terminated \r\n");
 	return 0;
@@ -314,28 +317,38 @@ int32_t command_read_memory() {
  * @param  none
  * @retval 0 if successful
  * 		  -1 in unsuccseful
- * Ruturn 2 ACK or 1 ACK
+ * Return 2 ACK or 1 ACK? ST's AN3155
  */
 int32_t command_go() {
-	uint8_t checksum ;
-	uint32_t addr ;
+	uint8_t checksum;
+	uint32_t addr;
 	//if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	cal_SENDACK();
+
+	/* Receive address and its checksum and validate it. */
 	cal_READWORD(addr,TIMEOUT_NACK);
 	cal_READBYTE(checksum,TIMEOUT_NACK); //checksum
 	if(checkchecksumword(addr,4,checksum) == -1) {cal_SENDNACK();}
 	if(!hil_validateaddr(addr) == 1) {cal_SENDNACK();}
 	cal_SENDACK();
 	//cal_SENDACK();
+
+	/* Jump! */
 	jumptoapp(addr);
+
 	return 0;
 }
 
+/*
+ * @brief  Write device memory
+ * @param  none
+ * @retval 0 if successful
+ * 		  -1 in unsuccseful
+ */
 int32_t command_write_memory() {
 
 	uint32_t addr;
-	uint8_t number;
-	uint8_t checksum;
+	uint8_t number, checksum;
 	uint8_t bytes[4] = {0, 0, 0, 0};
 	uint32_t i, j;
 
@@ -363,57 +376,64 @@ int32_t command_write_memory() {
 	if(checkchecksumbytes(databuffer,number+2,checksum)==-1) {cal_SENDNACK();}
 	else {
 		switch (hil_validateaddr(addr)) {
-		case 1:
-			for (j=0;j<(number+1);j=j+4) {
-				for (i=0; (i<4 && (j+i)<=number); i++) {
-				//WE ARE PRINTING THE NUMBER OF BYTES, TWO IN THIS SENSE!!!!!!!
-					//if((j+i)<=number)
-					bytes[i]=databuffer[j+i];
-					//else bytes[i]=0;
+			case 1:  //case FLASH
+				for (j=0;j<(number+1);j=j+4) {
+					for (i=0; (i<4 && (j+i)<=number); i++) {
+						bytes[i]=databuffer[j+i];
+					}
+				FLASH_ProgramWord(addr+j,*(uint32_t*)bytes);
 				}
-			FLASH_ProgramWord(addr+j,*(uint32_t*)bytes);
+				cal_SENDACK();
+				break;
+			case 0:  //case RAM
+				//UNTESTED
+				for (j=0;j<number+1;j++) {
+				*(&addr+j)=*(databuffer+j);
+				}
+				break;
+			default: //case option bytes
+				//UNTESTED
+				if(addr==0x1FFFF800) {
+					FLASH_ProgramOptionByteData(addr, *databuffer);
+					if(cal_sendbyte(STM32_COMM_ACK)==-1) return -1;
+					hil_reset();
+					break;
+				}
+			else {
+				cal_SENDNACK();
+				return -1;
 			}
-			cal_SENDACK();
-			break;
-	case 0:
-		//How to writhe into RAM,the following codes maybe wrong
-		for (j=0;j<number+1;j++) {
-        *(&addr+j)=*(databuffer+j);
 		}
-		break;
-	default:
-		if(addr==0x1FFFF800) {
-			FLASH_ProgramOptionByteData(addr, *databuffer);
-			if(cal_sendbyte(STM32_COMM_ACK)==-1) return -1;
-			hil_reset();
-			break;
-		}
-		else {
-			cal_SENDNACK();
-			return -1;
-		}
-	}
 	}
 	return 0;
 }
 
+
 int32_t command_erase_memory() {
-	uint8_t number ;
-	uint8_t checksum;
-	uint8_t i;
+	uint8_t number, checksum;
 	uint32_t pageaddr;
+	uint8_t i;
+
 	cal_SENDLOG("-> cmd: erase memory started, acking \r\n");
 	//if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	cal_SENDACK();
-	cal_READBYTE(number, TIMEOUT_NACK);  //number of pages to be erased
+
+	/* Read number of pages to be erased. */
+	cal_READBYTE(number, TIMEOUT_NACK);
+
+	/* If global erase. */
 	if (number==0xFF) {
-			cal_SENDLOG("-> cmd: global erase requested, starting global erase \r\n");
-			hil_globalerasememory();
-			cal_SENDLOG("-> cmd: global erase terminated, acking \r\n");
-			cal_SENDACK();
-			else return 0;
-		}
+		cal_SENDLOG("-> cmd: global erase requested, starting global erase \r\n");
+		hil_globalerasememory();
+		cal_SENDLOG("-> cmd: global erase terminated, acking \r\n");
+		cal_SENDACK();
+		else return 0;
+	}
+	/* If pagewise erase. */
 	else {
+
+			//UNTESTED!
+
 			cal_SENDLOG("-> cmd: pagewise erase requested \r\n");
 			uint8_t databuffer[number+2];
 			for(i=0;i<number+1;i++) {
@@ -428,13 +448,13 @@ int32_t command_erase_memory() {
 			   FLASH_ErasePage(pageaddr);
 			}
 			cal_SENDLOG("-> cmd: pagewise erase terminated, acking \r\n");
-			cal_SENDACK();//pass checksum
+			cal_SENDACK();
 		}
 	return 0;
 }
 
-//Leave to be done tomorrow : 2012.4.16
-//DOES NOT HAVE TO BE IMPLEMENTED MANDATORILY. erase and extended erase commands are exclusive
+
+//DOES NOT HAVE TO BE IMPLEMENTED MANDATORILY. Erase and Extended Erase commands are exclusive
 int32_t command_exterase_memory() {
 	uint16_t *q = 0x0000;
 	if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
@@ -481,6 +501,7 @@ int32_t command_exterase_memory() {
 	return 0;
 }
 
+// UNTESTED
 int32_t command_write_protect() {
 	uint8_t number;
 	uint8_t checksum ;
@@ -505,6 +526,7 @@ int32_t command_write_protect() {
 	return 0;
 }
 
+//UNTESTED
 int32_t command_write_unprotect() {
 	//if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	cal_SENDLOG("-> cmd: write unprotect entered, acking \r\n");
@@ -517,6 +539,7 @@ int32_t command_write_unprotect() {
 	return 0;
 }
 
+//UNTESTED
 int32_t command_readout_protect() {
 	if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	if(cal_sendbyte(STM32_COMM_ACK)==-1) return -1;
@@ -526,6 +549,7 @@ int32_t command_readout_protect() {
 	return 0;
 }
 
+//UNTESTED
 int32_t command_readout_unprotect() {
 	if(cal_sendbyte(STM32_COMM_ACK)==-1) return -1;
 	hil_disablerop();//Flash Mass Erased :(

@@ -25,6 +25,7 @@
 /* Exported functions ------------------------------------------------------- */
 void hil_init(void);
 
+uint32_t hil_readFLASH (uint32_t address);
 uint8_t hil_getidbyte2(void);
 int32_t hil_ropactive(void);
 int32_t hil_validateaddr(uint32_t addr);
