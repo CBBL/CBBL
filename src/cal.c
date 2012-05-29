@@ -31,6 +31,7 @@ int32_t cal_sendbyte(uint8_t b) {
 	else
 	{
 	uint8_t mailbox;	//mailbox that will transmit the message
+	uint32_t tries = 0, maxTries = 99;
 
 	/* Set up the packet info. */
 	CanTxMsg msg;
@@ -42,9 +43,13 @@ int32_t cal_sendbyte(uint8_t b) {
 	msg.Data[0] = b;	//data
 
 	/* Fire. */
-	mailbox = CAN_Transmit(CAN1, &msg);
+	do {
+		mailbox = CAN_Transmit(CAN1, &msg);
+		tries++;
+	}
+	while (mailbox==CAN_TxStatus_NoMailBox && tries<maxTries);
 
-	/* Hard Fault if no mailbox is found empty. */
+	/* Hard Fault if no mailbox is found empty after a while. */
 	if (mailbox==CAN_TxStatus_NoMailBox) HardFault_Handler();
 
 	return 0;
@@ -261,8 +266,8 @@ void CANinit() {
 	//CAN1->MCR |= CAN_MCR_AWUM;
 
 	/* Use automatic retransmission mode. */
-	CAN1->MCR |= CAN_MCR_NART;
-	//&= ~(uint32_t)
+	CAN1->MCR &= ~(uint32_t) CAN_MCR_NART;
+	//  |=
 
 	/* Receive FIFO locked against overrun; incoming messages when FIFO full will be discarded. */
 	//CAN1->MCR |= CAN_MCR_RFLM;
