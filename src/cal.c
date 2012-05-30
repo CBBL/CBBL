@@ -20,6 +20,7 @@
  * @retval 0 if successful, -1 if not successful
  */
 int32_t cal_sendbyte(uint8_t b) {
+
 	if (comm_peripheral == USART)
 	{
 		USART_SendData(USART1, (uint16_t)b);
@@ -30,8 +31,15 @@ int32_t cal_sendbyte(uint8_t b) {
 
 	else
 	{
+
+	/* Refer to CANinit() for CAN configuration details. */
+
 	uint8_t mailbox;	//mailbox that will transmit the message
-	uint32_t tries = 0, maxTries = 99;
+	//uint32_t tries = 0, maxTries = 99;
+
+	/* Visual signal if any error has occurred. */
+	if (CAN_GetReceiveErrorCounter(CAN1) != 0)
+			GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
 
 	/* Set up the packet info. */
 	CanTxMsg msg;
@@ -42,14 +50,29 @@ int32_t cal_sendbyte(uint8_t b) {
 	msg.ExtId = 0;		//identifier value 0; must have been allowed for entrance by a filter bank
 	msg.Data[0] = b;	//data
 
-	/* Fire. */
+	/* Fire, blocking until the message has been sent. This will result in the usage of only one mailbox. */
+	mailbox = CAN_Transmit(CAN1, &msg);
+	while (CAN_TransmitStatus(CAN1, mailbox)!=CAN_TxStatus_Ok) {
+	}
+
+	/* If sent byte is ACK, then visual signal, otherwise */
+	if (b == 0x79) GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BS1 | GPIO_BSRR_BR2 | GPIO_BSRR_BS3;
+	else GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
+
+	/* Fire, blocking until a mailbox is found free or too many attempts are done. */
+	/*
 	do {
 		mailbox = CAN_Transmit(CAN1, &msg);
 		tries++;
 	}
 	while (mailbox==CAN_TxStatus_NoMailBox && tries<maxTries);
+	*/
 
-	/* Hard Fault if no mailbox is found empty after a while. */
+	/* Visual signal if any error has occurred. */
+	if (CAN_GetReceiveErrorCounter(CAN1) != 0)
+			GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
+
+	/* Hard Fault if no mailbox is found empty. */
 	if (mailbox==CAN_TxStatus_NoMailBox) HardFault_Handler();
 
 	return 0;
@@ -60,7 +83,7 @@ int32_t cal_sendbyte(uint8_t b) {
 
 
 /*
- * @brief  Receive byte through selected communication mode
+ * @brief  Receive byte through selected communication mode.
  * @param  Pointer to received byte container
  * @retval 0 if successful, -1 if not successful/timeout expired
  */
@@ -79,22 +102,36 @@ int32_t cal_receivebyte(uint8_t *c, uint32_t timeout) {
 
 	else
 	{
-	CanRxMsg msg0, msg1;
 
-	uint8_t f0, f1, s0;
+	/* Refer to CANinit() for CAN configuration details. */
+
+	CanRxMsg msg0;
+
+	/* Visual signal if any error has occurred. */
+	if (CAN_GetReceiveErrorCounter(CAN1) != 0)
+		GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
 
 	/* Fetch status of receive FIFOs. */
-	s0 = CAN1->RF0R;
+	//s0 = CAN1->RF0R;
 	//s1 = CAN1->RF1R;
+
+	/* Block until a message has arrived. */
 	while (!CAN_MessagePending(CAN1, CAN_FIFO0));
-	/* Receive the message from FIFO0. */
+
+	/* Receive the message from FIFO0.
+	 * FIFO0 is the only FIFO that will get incoming messages
+	 * as a pass-all filter is assigned to FIFO0 (CANinit())*/
 	CAN_Receive(CAN1, CAN_FIFO0, &msg0);
+
+	/* Visual signal if any error has occurred. */
+	if (CAN_GetReceiveErrorCounter(CAN1) != 0)
+			GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
 
 	/* Receive the message from FIFO1. */
 	//CAN_Receive(CAN1, CAN_FIFO1, &msg1);
 
-	f0 = msg0.Data[0];
-	f1 = msg1.Data[0];
+	//f0 = msg0.Data[0];
+	//f1 = msg1.Data[0];
 
 	/* Extract the data. */
 	*c = msg0.Data[0];

@@ -116,10 +116,7 @@ int32_t receivecommand(void) {
 int32_t command_receiveinit() {
 	cal_SENDLOG("-> waiting for init byte \r\n");
 	uint8_t p = 0x9;
-	//while (comm_peripheral == CAN) {
-	//cal_SENDBYTE(0x7F);
-	//delay(0xFFFFF);
-	//}
+
 	cal_READBYTE(p, TIMEOUT_INIT);
 	if(p==STM32_CMD_INIT) {
 		GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
@@ -219,33 +216,19 @@ int32_t jumptoapp(uint32_t addr) {
 int32_t command_get() {
 	cal_SENDLOG("-> cmd: get command \r\n");
 	cal_SENDACK();
-	//delay(999);
 	cal_SENDBYTE(0x0B);
-	//delay(999);
 	cal_SENDBYTE(0x10);
-	//delay(999);
 	cal_SENDBYTE(STM32_CMD_GET_COMMAND);
-	//delay(999);
 	cal_SENDBYTE(STM32_CMD_GETVERSION_READPROTECTION);
-	//delay(999);
 	cal_SENDBYTE(STM32_CMD_GET_ID);
-	//delay(999);
 	cal_SENDBYTE(STM32_CMD_READ_FLASH);
-	//delay(999);
 	cal_SENDBYTE(STM32_CMD_GO);
-	//delay(999);
 	cal_SENDBYTE(STM32_CMD_WRITE_FLASH);
-	//delay(99);
 	cal_SENDBYTE(STM32_CMD_ERASE_FLASH);
-	//delay(99);
 	cal_SENDBYTE(STM32_CMD_WRITE_PROTECT);
-	//delay(99);
 	cal_SENDBYTE(STM32_CMD_WRITE_UNPROTECT);
-	//delay(99);
 	cal_SENDBYTE(STM32_CMD_READ_PROTECT);
-	//delay(99);
 	cal_SENDBYTE(STM32_CMD_READ_UNPROTECT);
-	//delay(99);
 	cal_SENDACK();
 	cal_SENDLOG("\r\n-> cmd: get command terminated \r\n");
 	return 0;
@@ -294,7 +277,8 @@ int32_t command_get_id() {
 int32_t command_read_memory() {
 	cal_SENDLOG("-> cmd: read memory \r\n");
 	uint8_t checksum, number;
-	uint32_t addr, i, temp;
+	uint32_t addr, i;
+	uint32_t temp;
 
 	/* Check ROP. */
 	//if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
@@ -316,11 +300,26 @@ int32_t command_read_memory() {
     /* Send Data. */
 	/* Word-by-word as the returned value by hil_readFLASH */
 	for (i = 0;i < (number+1);i=i+4) {
+
 		temp = hil_readFLASH(addr+i);
+
+		/*
+		 * Need of delays found during debug
+		 * but is only for CAN transmission
+		 * when used with Pike's USB-CAN adapter
+		 * because of packet loss on the RX side
+		 * (guess is that the adapted doesn't keep up with such a fast packet burst)
+		 * Using Martino's CAN sniffer, no delays are needed
+		 */
 		cal_SENDBYTE(temp & 0xFF);
+		delay(999);
 		cal_SENDBYTE((temp>>8) & 0xFF);
+		delay(999);
 		cal_SENDBYTE((temp>>16) & 0xFF);
+		delay(999);
 		cal_SENDBYTE(temp>>24);
+		delay(999);
+
     }
 	cal_SENDLOG("-> cmd: read memory terminated \r\n");
 	return 0;
@@ -331,7 +330,7 @@ int32_t command_read_memory() {
  * @param  none
  * @retval 0 if successful
  * 		  -1 in unsuccseful
- * Return 2 ACK or 1 ACK? ST's AN3155
+ * Return 2 ACK or 1 ACK? Refer to ST's AN3155
  */
 int32_t command_go() {
 	uint8_t checksum;
@@ -345,6 +344,7 @@ int32_t command_go() {
 	if(checkchecksumword(addr,4,checksum) == -1) {cal_SENDNACK();}
 	if(!hil_validateaddr(addr) == 1) {cal_SENDNACK();}
 	cal_SENDACK();
+
 	//cal_SENDACK();
 
 	/* Jump! */
