@@ -1,12 +1,29 @@
-Future work:
+Library removal:
 stm32x_conf.h
 stm3210x_it.c
 stm32_flash.c
-change app linker file to 0x08000400
-remember to call ISSWRESET in main to distinguish different flow for the programme
 
 array of function pointers to select comm peripheral at runtime
 (streams so implemented in ChibiOS)
+
+code compile optimization
+
+naming
+
+unused functions removal
+
+mass erase needed to be reimplemented
+
+jump to app description
+
+tweaking parameters:
+- base address of the flash in hil for the mass erase
+
+/*Done
+change app linker file to 0x08000400
+
+/*done
+remember to call ISSWRESET in main to distinguish different flow for the programme
 
 /*Done
 REMEMBER TO DEFINE pFunction TYPE WHEN NOT INCLUDING COMMON.H ANYMORE
@@ -15,7 +32,6 @@ REMEMBER TO DEFINE pFunction TYPE WHEN NOT INCLUDING COMMON.H ANYMORE
 why in the command go there is an addr+4?
 why is dereferencing needed in the jump in the go command?
 why __set_MSP(*(uint32_t*) addr);?
-
 
 /*Done
 Issues with mass erase when write unprotect, pages, bla bla bla:

@@ -1,7 +1,7 @@
 MAKETOPDIR="$(shell pwd)"
 export MAKETOPDIR
 include Makefile.common
-LDFLAGS=$(COMMONFLAGS) -fno-exceptions -ffunction-sections -fdata-sections -L$(LIBDIR) -nostartfiles -Wl,--gc-sections,-Tstm32f1x_md.ld
+LDFLAGS=$(COMMONFLAGS) -L$(LIBDIR) -nostartfiles -Wl,--gc-sections,-Tstm32f1x_md.ld -Wl,-Map=firmware.map
 
 LDLIBS+=-lm
 LDLIBS+=-lstm32

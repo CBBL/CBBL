@@ -15,7 +15,7 @@ INCLUDE+=-I$(STMLIB)/CMSIS/CM3/CoreSupport
 INCLUDE+=-I$(STMLIB)/CMSIS/CM3/DeviceSupport/ST/STM32F10x
 INCLUDE+=-I$(STMLIB)/STM32F10x_StdPeriph_Driver/inc
  
-COMMONFLAGS=-g -mcpu=cortex-m3 -mthumb
+COMMONFLAGS=-O0 -mcpu=cortex-m3 -mthumb -fno-exceptions -ffunction-sections -fdata-sections 
 CFLAGS+=$(COMMONFLAGS) -Wall -Werror $(INCLUDE)
 CFLAGS+=-D STM32F10X_HD
 CFLAGS+=-D VECT_TAB_FLASH

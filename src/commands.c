@@ -4,7 +4,8 @@
   * @author  Marco Zavatta, Yin Zhining
   * @version V1.0
   * @date    03/04/2012
-  * @brief   STM32 embedded bootloader's commands implementation
+  * @brief   STM32 embedded bootloader's commands implementation. Refer to ST's
+  * 		 AN3155 for the protocol specification.
   ******************************************************************************
   */
 
@@ -22,7 +23,7 @@
  */
 int32_t receivecommand(void) {
 	uint8_t p;
-	uint8_t q;
+	uint8_t q; //q must equal !p
 	cal_READBYTE(p, TIMEOUT_NACK);
 	switch(p) {
 		case STM32_CMD_GET_COMMAND :
@@ -30,13 +31,13 @@ int32_t receivecommand(void) {
 			cal_READBYTE(q, TIMEOUT_NACK);
 			uint8_t t = (~(uint8_t)(STM32_CMD_GET_COMMAND));
 			if (q==t) {
-				return command_get();
+				return command_get_command();
 			}
 			else cal_SENDNACK();
-		case STM32_CMD_ERASE_FLASH :
+		case STM32_CMD_ERASE :
 			cal_READBYTE(q, TIMEOUT_NACK);
-			if (q== (uint8_t)~STM32_CMD_ERASE_FLASH) {
-				return command_erase_memory();
+			if (q== (uint8_t)~STM32_CMD_ERASE) {
+				return command_erase();
 			}
 			else cal_SENDNACK();
 		case STM32_CMD_GET_ID :
@@ -45,9 +46,9 @@ int32_t receivecommand(void) {
 				return command_get_id();
 			}
 			else cal_SENDNACK();
-		case STM32_CMD_WRITE_FLASH :
+		case STM32_CMD_WRITE_MEMORY :
 			cal_READBYTE(q, TIMEOUT_NACK);
-			if (q== (uint8_t)~STM32_CMD_WRITE_FLASH) {
+			if (q== (uint8_t)~STM32_CMD_WRITE_MEMORY) {
 				return command_write_memory();
 			}
 			else cal_SENDNACK();
@@ -57,16 +58,16 @@ int32_t receivecommand(void) {
 				return command_write_unprotect();
 			}
 			else cal_SENDNACK();
-		case STM32_CMD_READ_FLASH :
+		case STM32_CMD_READ_MEMORY :
 			cal_READBYTE(q, TIMEOUT_NACK);
-			if (q== (uint8_t)~STM32_CMD_READ_FLASH) {
+			if (q== (uint8_t)~STM32_CMD_READ_MEMORY) {
 				return command_read_memory();
 			}
 			else cal_SENDNACK();
 		case STM32_CMD_GETVERSION_READPROTECTION :
 			cal_READBYTE(q, TIMEOUT_NACK);
 			if (q== (uint8_t)~STM32_CMD_GETVERSION_READPROTECTION) {
-				return command_get_versionread();
+				return command_get_version();
 			}
 			else cal_SENDNACK();
 		case STM32_CMD_GO :
@@ -75,10 +76,10 @@ int32_t receivecommand(void) {
 				return command_go();
 			}
 			else cal_SENDNACK();
-		case STM32_CMD_EXTENDED_ERASE_FLASH :
+		case STM32_CMD_EXTENDED_ERASE :
 			cal_READBYTE(q, TIMEOUT_NACK);
-			if (q== (uint8_t)~STM32_CMD_EXTENDED_ERASE_FLASH) {
-				return command_exterase_memory();
+			if (q== (uint8_t)~STM32_CMD_EXTENDED_ERASE) {
+				return command_extended_erase();
 			}
 			else cal_SENDNACK();
 		case STM32_CMD_WRITE_PROTECT :
@@ -87,21 +88,21 @@ int32_t receivecommand(void) {
 				return command_write_protect();
 			}
 			else cal_SENDNACK();
-		case STM32_CMD_READ_PROTECT :
+		case STM32_CMD_READOUT_PROTECT :
 			cal_READBYTE(q, TIMEOUT_NACK);
-			if (q == (uint8_t)~STM32_CMD_READ_PROTECT) {
+			if (q == (uint8_t)~STM32_CMD_READOUT_PROTECT) {
 				return command_readout_protect();
 			}
 			else cal_SENDNACK();
-		case STM32_CMD_READ_UNPROTECT :
+		case STM32_CMD_READOUT_UNPROTECT :
 			cal_READBYTE(q, TIMEOUT_NACK);
-			if (q == (uint8_t)~STM32_CMD_READ_UNPROTECT) {
+			if (q == (uint8_t)~STM32_CMD_READOUT_UNPROTECT) {
 				return command_readout_unprotect();
 			}
 			else cal_SENDNACK();
 		default :
 			cal_SENDLOG("-> received command failed \r\n");
-			cal_SENDNACK();  //-1 means no command to receive or receive bytes that is not recogonized
+			cal_SENDNACK();  //-1 means no command to receive or receive bytes that is not recognized
 			break;
 	}
 	return 0;
@@ -115,8 +116,7 @@ int32_t receivecommand(void) {
  */
 int32_t command_receiveinit() {
 	cal_SENDLOG("-> waiting for init byte \r\n");
-	uint8_t p = 0x9;
-
+	uint8_t p;
 	cal_READBYTE(p, TIMEOUT_INIT);
 	if(p==STM32_CMD_INIT) {
 		GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
@@ -125,6 +125,7 @@ int32_t command_receiveinit() {
 		cal_baudrate();
 		//NEED TO WRITE UNPROTECT SECTOR 1 (PAGES 0-3) AS THEY ARE AUTOMATICALLY WRITE PROTECTED
 		//START OFF WITH READ PROTECTION ACTIVE BY ERASING OPTION BYTES AS BULK
+		// Enter into infinite loop, it will jump away when the command_go is requested
 		while (1) {
 			receivecommand();
 		}
@@ -138,7 +139,7 @@ int32_t command_receiveinit() {
 
 /*
  * @brief  Checksum calculation according to ST's AN3155 page7
- * @param  32-bit word to compute bytewise checksum for
+ * @param  array of bytes and its length
  * @retval 8-bit checksum
  */
 uint8_t calculatechecksum(uint8_t *data, uint32_t length) {
@@ -153,12 +154,12 @@ uint8_t calculatechecksum(uint8_t *data, uint32_t length) {
 
 /*
  * @brief  Checks if checksum correct according to ST's AN3155 page7
- * @param  32-bit word to compute bytewise checksum for
+ * @param  32-bit word to compute byte-wise checksum for, length equal to 4, checksum byte to check against
  * @retval 0 if correct
  * 		  -1 if not correct
  *
  * First computes the checksum of "length" bytes by XOR and then checks it against
- * the provided chacksum byte
+ * the provided checksum byte
  */
 int32_t checkchecksumword(uint32_t data, uint8_t length, uint8_t checksum) {
 	uint8_t bytes[4];
@@ -172,7 +173,14 @@ int32_t checkchecksumword(uint32_t data, uint8_t length, uint8_t checksum) {
 	else return -1;
 }
 
-
+/*
+ * @brief  Checks if checksum correct according to ST's AN3155 page7
+ * @param  array of bytes to compute byte-wise checksum for, length of the array, checksum byte to check against
+ * @retval 0 if correct
+ * 		  -1 if not correct
+ *
+ * Similar to checkchecksumword()
+ */
 int32_t checkchecksumbytes(uint8_t *data, uint32_t length, uint8_t checksum) {
 	if(calculatechecksum(data,length)==checksum) {
 			return 0;
@@ -213,7 +221,7 @@ int32_t jumptoapp(uint32_t addr) {
  * @retval 0 if successful
  * 		  -1 in unsuccseful
  */
-int32_t command_get() {
+int32_t command_get_command() {
 	cal_SENDLOG("-> cmd: get command \r\n");
 	cal_SENDACK();
 	cal_SENDBYTE(0x0B);
@@ -221,26 +229,26 @@ int32_t command_get() {
 	cal_SENDBYTE(STM32_CMD_GET_COMMAND);
 	cal_SENDBYTE(STM32_CMD_GETVERSION_READPROTECTION);
 	cal_SENDBYTE(STM32_CMD_GET_ID);
-	cal_SENDBYTE(STM32_CMD_READ_FLASH);
+	cal_SENDBYTE(STM32_CMD_READ_MEMORY);
 	cal_SENDBYTE(STM32_CMD_GO);
-	cal_SENDBYTE(STM32_CMD_WRITE_FLASH);
-	cal_SENDBYTE(STM32_CMD_ERASE_FLASH);
+	cal_SENDBYTE(STM32_CMD_WRITE_MEMORY);
+	cal_SENDBYTE(STM32_CMD_ERASE);
 	cal_SENDBYTE(STM32_CMD_WRITE_PROTECT);
 	cal_SENDBYTE(STM32_CMD_WRITE_UNPROTECT);
-	cal_SENDBYTE(STM32_CMD_READ_PROTECT);
-	cal_SENDBYTE(STM32_CMD_READ_UNPROTECT);
+	cal_SENDBYTE(STM32_CMD_READOUT_PROTECT);
+	cal_SENDBYTE(STM32_CMD_READOUT_UNPROTECT);
 	cal_SENDACK();
 	cal_SENDLOG("\r\n-> cmd: get command terminated \r\n");
 	return 0;
 }
 
 /*
- * @brief  Get bootloader version
+ * @brief  Get bootloader version and read protection status
  * @param  none
  * @retval 0 if successful
- * 		  -1 in unsuccseful
+ * 		  -1 in unsuccessful
  */
-int32_t command_get_versionread() {
+int32_t command_get_version() {
 	cal_SENDLOG("-> cmd: get version \r\n");
 	cal_SENDACK();
 	cal_SENDBYTE(BLVERSION);
@@ -255,7 +263,7 @@ int32_t command_get_versionread() {
  * @brief  Get PID
  * @param  none
  * @retval 0 if successful
- * 		  -1 in unsuccseful
+ * 		  -1 in unsuccessful
  */
 int32_t command_get_id() {
 	cal_SENDLOG("-> cmd: get ID \r\n");
@@ -272,7 +280,7 @@ int32_t command_get_id() {
  * @brief  Read Device Memory
  * @param  none
  * @retval 0 if successful
- * 		  -1 in unsuccseful
+ * 		  -1 in unsuccessful
  */
 int32_t command_read_memory() {
 	cal_SENDLOG("-> cmd: read memory \r\n");
@@ -305,10 +313,10 @@ int32_t command_read_memory() {
 
 		/*
 		 * Need of delays found during debug
-		 * but is only for CAN transmission
+		 * but is only needed for CAN transmission
 		 * when used with Pike's USB-CAN adapter
 		 * because of packet loss on the RX side
-		 * (guess is that the adapted doesn't keep up with such a fast packet burst)
+		 * (guess is that the adapted does not keep up with such a fast packet burst)
 		 * Using Martino's CAN sniffer, no delays are needed
 		 */
 		cal_SENDBYTE(temp & 0xFF);
@@ -329,8 +337,8 @@ int32_t command_read_memory() {
  * @brief  Go executing the application code
  * @param  none
  * @retval 0 if successful
- * 		  -1 in unsuccseful
- * Return 2 ACK or 1 ACK? Refer to ST's AN3155
+ * 		  -1 in unsuccessful
+ * Return 2 ACK or 1 ACK? Refer to ST's AN3155 for this ambiguity
  */
 int32_t command_go() {
 	uint8_t checksum;
@@ -422,8 +430,13 @@ int32_t command_write_memory() {
 	return 0;
 }
 
-
-int32_t command_erase_memory() {
+/*
+ * @brief  Erase device memory
+ * @param  none
+ * @retval 0 if successful
+ * 		  -1 in unsuccseful
+ */
+int32_t command_erase() {
 	uint8_t number, checksum;
 	uint32_t pageaddr;
 	uint8_t i;
@@ -443,6 +456,7 @@ int32_t command_erase_memory() {
 		cal_SENDACK();
 		else return 0;
 	}
+
 	/* If pagewise erase. */
 	else {
 
@@ -468,8 +482,9 @@ int32_t command_erase_memory() {
 }
 
 
-//DOES NOT HAVE TO BE IMPLEMENTED MANDATORILY. Erase and Extended Erase commands are exclusive
-int32_t command_exterase_memory() {
+//DOES NOT HAVE TO BE IMPLEMENTED MANDATORILY. Erase and Extended Erase commands are mutually exclusive
+//UNTESTED
+int32_t command_extended_erase() {
 	uint16_t *q = 0x0000;
 	if (hil_ropactive())  {cal_sendbyte(STM32_COMM_NACK); return -1;}
 	if(cal_sendbyte(STM32_COMM_ACK)==-1) return -1;

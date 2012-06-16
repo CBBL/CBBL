@@ -45,6 +45,5 @@ int32_t hil_clearram(void);//clear whole ram , should be different from globaler
 
 void hil_clock_init(void);
 void hil_FPECenable(void);
-int8_t hil_ISSWRESET();
+int8_t hil_isSWreset();
 void delay(uint32_t delay);
-
