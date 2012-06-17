@@ -66,9 +66,10 @@ return 0;
 }
 
 /*
- * @brief  Mass Erase except Page 0 (which contains the bootloader)
+ * @brief  Mass Erase except bootloader's pages
  * @param  void
- * @retval
+ * @retval 0 if successful
+ * 		  -1 if not successful
  */
 int32_t hil_globalerasememory(void) {
 	int32_t pageaddr = FLASHbase;
@@ -79,23 +80,40 @@ int32_t hil_globalerasememory(void) {
 	return 0;
 }
 
+/*
+ * @brief  FLASH page erase
+ * @param  base address of the page
+ * @retval 0 if successful
+ * 		  -1 if not successful
+ *
+ * addr is not checked, it is assumed to be exactly the first address of a page
+ * though it is checked not to be a bootloader's page
+ */
 int32_t hil_erasecorrespondingpage(int32_t addr) {
-	 //NEED TO CHECK THAT IT'S NOT THE BOOTLOADER PAGE!!!
-	 FLASH_ErasePage(addr);
-	 return 0;
+	 if (addr>=FLASHbase && addr<=FLASHtop) {
+		 FLASH_ErasePage(addr);
+		 return 0;
+	 }
+	 else return -1;
 }
 
+/*
+ * @brief  Erase FLASH bank 1 of the device
+ * @param  base address of the page
+ * @retval
+ */
 int32_t hil_erasebank1(void) {
 	hil_globalerasememory();
 	return 0;
 }
 
+// Only one bank present in STM32F10x MD
 int32_t hil_erasebank2(void) {
 	return 0;
 }
 
 /*
- * @brief  Generate System reset by SW
+ * @brief  Generate System reset from within SW
  * @param  void
  * @retval none
  */
@@ -174,7 +192,7 @@ void hil_clock_init(void) {
 	/* FLASH wait states setup. */
 	FLASH->ACR |= FLASH_ACR_LATENCY_2;
 
-	/* Set PLL as system clock */
+	/* Set PLL as system clock. */
 	RCC->CFGR |= RCC_CFGR_SW_PLL;
 
 	/* Wait until PLL is the system clock. */
@@ -207,7 +225,7 @@ void hil_FPECenable(void) {
  * @retval 1 if sw-triggered
  *         0 if not
  */
-int8_t hil_ISSWRESET(void) {
+int8_t hil_isSWreset(void) {
 	if((RCC->CSR & RCC_CSR_SFTRSTF) == 0x10000000) {
 		RCC->CSR |= RCC_CSR_RMVF;
 		return 1;
@@ -225,4 +243,7 @@ void delay(uint32_t delay) {
 	uint32_t i = 0;
 	while(i<delay) i++;
 }
-/*FPEC unlock. */
+
+/**
+  * @}
+  */
