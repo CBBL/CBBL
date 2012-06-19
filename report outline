@@ -1,0 +1,45 @@
+(Y) Overview (problem + solution + main features)
+- CAN port present and no hardware bootloader with can embedded in the device.
+- ...
+
+(Z) Communication technologies
+	- USART
+	- CAN
+
+(Z) Definition of Bootloading
+
+(Z) echnology review relevant for bootloading
+- STM32 platform
+	- embedded bootloaders and its protocol (simple, stateless, command based...)
+	- ports
+	- perpheral registers and their function
+	- flash organization
+- Compilation and linking process for the booted application
+	
+(Y) Design considerations
+- protocol alternatives and reasons behind the choice
+	- Ymodem (...)
+	- Embedded bootlaoder one
+
+(Y) Tools and development environment (compiler, eclipse, openocd, stm32 board by martino,
+jtag programmer, pcan USB-CAN converter)
+
+Implementation:
+Device side
+	- Architecture (usefulness of abstraction layers)
+	- library usage
+	- Cal (can, usart initalization + can usart usage)
+	- hil (flash initialization and clock initailiazation and flash management abstraction, mass erase needed to be reimplemented)
+	- commands (jump command, modifications of the original protocol)
+	- code size and compilation
+PC side
+	- template
+	- modifications (coherent protocol) and pCAN library usage
+
+(Z) Use cases
+ - workflow, install and run
+
+(Y) Future work:
+- Library substitution
+- optimization of CAN packets usage
+- implementation of remaining commands and memory protection management

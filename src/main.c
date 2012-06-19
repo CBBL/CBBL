@@ -56,7 +56,7 @@ int main(void)
 
   // NEED TO SAVE THE STATE TO RE-ENTER THE SAME COMMUNICATION DEVICE AFTER THE SW-TRIGGERED RESET
   /* Test if button on the board is pressed during reset or if it was a sw-triggered reset. */
- /* if (((GPIOB->IDR & GPIO_IDR_IDR1) == 0x00 && resettype == 0) || resettype == 1)
+  if (((GPIOB->IDR & GPIO_IDR_IDR1) == 0x00 && resettype == 0) || resettype == 1)
   { 
 	comm_peripheral = USART;
 	if (resettype==1) {
@@ -70,10 +70,10 @@ int main(void)
 
 	command_receiveinit();
   }
-   else*/
+   /*else*/
 
 
-  if (((GPIOB->IDR & GPIO_IDR_IDR2) == 0x00 && resettype == 0) || resettype == 1)
+  /*if (((GPIOB->IDR & GPIO_IDR_IDR2) == 0x00 && resettype == 0) || resettype == 1)
   {
 	comm_peripheral = CAN;
 	if (resettype==1) {
@@ -85,7 +85,7 @@ int main(void)
 	  	cal_SENDLOG("-> button pressed \r\n");
 	}
 	command_receiveinit();
-  }
+  }*/
 
   /* Keep the user application running */
   else
