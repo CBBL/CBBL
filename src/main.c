@@ -51,14 +51,14 @@ int main(void)
   cal_SENDLOG("==========================\r\n");
   cal_SENDLOG("\r\n");
 
-  CanStat = CAN1;
+  //CanStat = CAN1;
 
 
   // NEED TO SAVE THE STATE TO RE-ENTER THE SAME COMMUNICATION DEVICE AFTER THE SW-TRIGGERED RESET
   /* Test if button on the board is pressed during reset or if it was a sw-triggered reset. */
   if (((GPIOB->IDR & GPIO_IDR_IDR1) == 0x00 && resettype == 0) || resettype == 1)
   { 
-	comm_peripheral = USART;
+	//comm_peripheral = USART;
 	if (resettype==1) {
 		GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BS1 | GPIO_BSRR_BS2 | GPIO_BSRR_BR3;
 		cal_SENDLOG("-> software reset occured \r\n");

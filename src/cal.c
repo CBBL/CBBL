@@ -21,62 +21,61 @@
  */
 int32_t cal_sendbyte(uint8_t b) {
 
-	if (comm_peripheral == USART)
-	{
+	#ifdef USART
+
 		USART_SendData(USART1, (uint16_t)b);
 		while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET) {
 		}
 		return 0;
-	}
 
-	else
-	{
+	#elif defined CAN
 
-	/* Refer to CANinit() for CAN configuration details. */
+		/* Refer to CANinit() for CAN configuration details. */
 
-	uint8_t mailbox;	//mailbox that will transmit the message
-	//uint32_t tries = 0, maxTries = 99;
+		uint8_t mailbox;	//mailbox that will transmit the message
+		//uint32_t tries = 0, maxTries = 99;
 
-	/* Visual signal if any error has occurred. */
-	if (CAN_GetReceiveErrorCounter(CAN1) != 0)
-			GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
+		/* Visual signal if any error has occurred. */
+		if (CAN_GetReceiveErrorCounter(CAN1) != 0)
+				GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
 
-	/* Set up the packet info. */
-	CanTxMsg msg;
-	msg.DLC = 1;		//frame length
-	msg.RTR = 0;		//data frame (not a remote frame)
-	msg.IDE = 0;		//standard identifier (not an extended identifier)
-	msg.StdId = 0;		//identifier value 0; must have been allowed for entrance by a filter bank
-	msg.ExtId = 0;		//identifier value 0; must have been allowed for entrance by a filter bank
-	msg.Data[0] = b;	//data
+		/* Set up the packet info. */
+		CanTxMsg msg;
+		msg.DLC = 1;		//frame length
+		msg.RTR = 0;		//data frame (not a remote frame)
+		msg.IDE = 0;		//standard identifier (not an extended identifier)
+		msg.StdId = 0;		//identifier value 0; must have been allowed for entrance by a filter bank
+		msg.ExtId = 0;		//identifier value 0; must have been allowed for entrance by a filter bank
+		msg.Data[0] = b;	//data
 
-	/* Fire, blocking until the message has been sent. This will result in the usage of only one mailbox. */
-	mailbox = CAN_Transmit(CAN1, &msg);
-	while (CAN_TransmitStatus(CAN1, mailbox)!=CAN_TxStatus_Ok) {
-	}
-
-	/* If sent byte is ACK, then visual signal, otherwise */
-	if (b == 0x79) GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BS1 | GPIO_BSRR_BR2 | GPIO_BSRR_BS3;
-	else GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
-
-	/* Fire, blocking until a mailbox is found free or too many attempts are done. */
-	/*
-	do {
+		/* Fire, blocking until the message has been sent. This will result in the usage of only one mailbox. */
 		mailbox = CAN_Transmit(CAN1, &msg);
-		tries++;
-	}
-	while (mailbox==CAN_TxStatus_NoMailBox && tries<maxTries);
-	*/
+		while (CAN_TransmitStatus(CAN1, mailbox)!=CAN_TxStatus_Ok) {
+		}
 
-	/* Visual signal if any error has occurred. */
-	if (CAN_GetReceiveErrorCounter(CAN1) != 0)
-			GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
+		/* If sent byte is ACK, then visual signal, otherwise */
+		if (b == 0x79) GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BS1 | GPIO_BSRR_BR2 | GPIO_BSRR_BS3;
+		else GPIOA->BSRR |= GPIO_BSRR_BS0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
 
-	/* Hard Fault if no mailbox is found empty. */
-	if (mailbox==CAN_TxStatus_NoMailBox) HardFault_Handler();
+		/* Fire, blocking until a mailbox is found free or too many attempts are done. */
+		/*
+		do {
+			mailbox = CAN_Transmit(CAN1, &msg);
+			tries++;
+		}
+		while (mailbox==CAN_TxStatus_NoMailBox && tries<maxTries);
+		*/
 
-	return 0;
-	}
+		/* Visual signal if any error has occurred. */
+		if (CAN_GetReceiveErrorCounter(CAN1) != 0)
+				GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
+
+		/* Hard Fault if no mailbox is found empty. */
+		if (mailbox==CAN_TxStatus_NoMailBox) HardFault_Handler();
+
+		return 0;
+
+	#endif
 
 	return -1;
 }
@@ -89,8 +88,8 @@ int32_t cal_sendbyte(uint8_t b) {
  */
 int32_t cal_receivebyte(uint8_t *c, uint32_t timeout) {
 
-	if (comm_peripheral == USART)
-	{
+	#ifdef USART
+
 		while (timeout-- > 0)	{
 			if ( USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != RESET)	{
 				*c = USART1->DR;
@@ -98,46 +97,46 @@ int32_t cal_receivebyte(uint8_t *c, uint32_t timeout) {
 			}
 		}
 		return -1;
-	}
 
-	else
-	{
 
-	/* Refer to CANinit() for CAN configuration details. */
+	#elif defined CAN
 
-	CanRxMsg msg0;
 
-	/* Visual signal if any error has occurred. */
-	if (CAN_GetReceiveErrorCounter(CAN1) != 0)
-		GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
+		/* Refer to CANinit() for CAN configuration details. */
 
-	/* Fetch status of receive FIFOs. */
-	//s0 = CAN1->RF0R;
-	//s1 = CAN1->RF1R;
+		CanRxMsg msg0;
 
-	/* Block until a message has arrived. */
-	while (!CAN_MessagePending(CAN1, CAN_FIFO0));
-
-	/* Receive the message from FIFO0.
-	 * FIFO0 is the only FIFO that will get incoming messages
-	 * as a pass-all filter is assigned to FIFO0 (CANinit())*/
-	CAN_Receive(CAN1, CAN_FIFO0, &msg0);
-
-	/* Visual signal if any error has occurred. */
-	if (CAN_GetReceiveErrorCounter(CAN1) != 0)
+		/* Visual signal if any error has occurred. */
+		if (CAN_GetReceiveErrorCounter(CAN1) != 0)
 			GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
 
-	/* Receive the message from FIFO1. */
-	//CAN_Receive(CAN1, CAN_FIFO1, &msg1);
+		/* Fetch status of receive FIFOs. */
+		//s0 = CAN1->RF0R;
+		//s1 = CAN1->RF1R;
 
-	//f0 = msg0.Data[0];
-	//f1 = msg1.Data[0];
+		/* Block until a message has arrived. */
+		while (!CAN_MessagePending(CAN1, CAN_FIFO0));
 
-	/* Extract the data. */
-	*c = msg0.Data[0];
+		/* Receive the message from FIFO0.
+		 * FIFO0 is the only FIFO that will get incoming messages
+		 * as a pass-all filter is assigned to FIFO0 (CANinit())*/
+		CAN_Receive(CAN1, CAN_FIFO0, &msg0);
 
-	return 0;
-	}
+		/* Visual signal if any error has occurred. */
+		if (CAN_GetReceiveErrorCounter(CAN1) != 0)
+				GPIOA->BSRR |= GPIO_BSRR_BR0 | GPIO_BSRR_BR1 | GPIO_BSRR_BR2 | GPIO_BSRR_BR3;
+
+		/* Receive the message from FIFO1. */
+		//CAN_Receive(CAN1, CAN_FIFO1, &msg1);
+
+		//f0 = msg0.Data[0];
+		//f1 = msg1.Data[0];
+
+		/* Extract the data. */
+		*c = msg0.Data[0];
+
+		return 0;
+	#endif
 
 	return -1;
 }
@@ -208,11 +207,11 @@ int32_t cal_init(void) {
 
 	GPIOinit();
 
-	//#ifdef USART
+	#ifdef USART
 	USARTinit();
-	//#elif defined CAN
+	#elif defined CAN
 	CANinit();
-	//#endif
+	#endif
 
 	return 0;
 }

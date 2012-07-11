@@ -13,17 +13,17 @@
 
 /* Communication peripheral selection --------------------------------------- */
 /* Uncomment the intended device -------------------------------------------- */
-#define USART 1
+//#define USART 1
 #define CAN 2
 
 /* Global variables --------------------------------------------------- */
-uint8_t comm_peripheral;
+//uint8_t comm_peripheral;
 
-//#ifdef USART
+#ifdef USART
 #include "stm32f10x_usart.h"
-//#elif defined CAN
+#elif defined CAN
 #include "stm32f10x_can.h"
-//#endif
+#endif
 
 /* ------------------------------------------------------------------------- */
 

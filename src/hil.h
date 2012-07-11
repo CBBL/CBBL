@@ -14,7 +14,7 @@
 #define PCLK1 (0x112A880) //value given in Hz: 18MHz
 
 #define PIDBYTE2				(0x10)
-#define FLASHbase				(0x08006000)
+#define FLASHbase				(0x08003000)
 #define FLASHtop				(0x0801FFFF)
 #define FLASHPAGESIZE   		(0x400)
 #define SECTORSIZE      		(0x1000)
