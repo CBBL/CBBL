@@ -13,8 +13,8 @@
 
 /* Communication peripheral selection --------------------------------------- */
 /* Uncomment the intended device -------------------------------------------- */
-//#define USART 1
-#define CAN 2
+#define USART 1
+//#define CAN 2
 
 /* Global variables --------------------------------------------------- */
 //uint8_t comm_peripheral;

@@ -1,0 +1,10 @@
+Now you need to change your ChibiOS to be located at this location. You need to change only 2 settings:
+Your linker script:
+- By default your makefile uses a standard ChibiOS linker script. In our case os/ports/GCC/ARMCMx/STM32F1xx/ld/STM32F107xC.ld.
+- Copy it into your project folder and modify LDSCRIPT in your makefile to point to your new linker script. (You might want to test if your project still compiles.)
+- Modify the starting point of your flash in the linker script. This the flash : org = 0x08000000, len = 256k line. Just replace 0x08000000 with the address you want. (You might also reduce the length of the free flash space, but it is not so important..) Your program should still compile - but not work.
+The start of your interrupt vector jump table, which was originally at 0x08000000 now moved to a new address. Currently there is the boot loader at that place, so we have to tell the Cortex-M3 where to too look. We can do this by adding the setting to chconf.h.
+- Add a define for CORTEX_VTOR_INIT to chconf.h pointing to address 0x00005000. Do not worry about the missing 8 in the address. The processor does a internal mapping of the flash/ram...
+
+You should now be able to flash the program via the bootloader. It might also work to flash it directly over jtag (if you do no flash mass erase)
+since you will only start writing flash at 0x08005000 and the bootloader is preserved and will just jump to your user application.
