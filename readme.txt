@@ -1,7 +1,12 @@
-\section{Public Repositories}
-\begin{description}
-\item[CBBL] \verb|https://github.com/CBBL/CBBL|
-\item[stm32ld\_cbbl] \verb|https://github.com/CBBL/stm32ld_cbbl|
-\item[CBBL\_testApp] \verb|https://github.com/CBBL/CBBL_testApp|
-\item[ChibiOS\_cbbl]  \verb|https://github.com/CBBL/ChibiOS_cbbl|
-\end{description}
+STM32 Firmware Loader
+to be used with the host side stm32ld_cbbl
+at https://github.com/CBBL/stm32ld_cbbl
+=====================
+
+This firmware implements a USART and CAN bus bootloader for STM32F103xB microcontrollers.
+
+Authors:
+Marco Zavatta
+<zavaboss@gmail.com>
+Yin Zhining
+<newcrazyyin1988@hotmail.com>
